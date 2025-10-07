@@ -1,0 +1,151 @@
+{% extends 'registration/registration_base.html' %} 
+{% load i18n %}
+{% load static %}
+{% block title %}{% trans 'Dolphin One - Learning Management System - Login' %}{% endblock title %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+
+<!-- Inline styles -->
+<style>
+  /* Fullscreen background video */
+  .auth-video-bg {
+    position: fixed; inset: 0; z-index: -1; overflow: hidden;
+  }
+  .auth-video-bg video {
+    width: 100%; height: 100%; object-fit: cover;
+    opacity: .25; filter: brightness(.98) saturate(1.05);
+  }
+  @media (prefers-reduced-motion: reduce){ .auth-video-bg video{ display:none; } }
+
+  /* Hero */
+  .auth-hero { margin-top: 60px; margin-bottom: 12px; }
+  .auth-title { font-weight: 800; color: #53a5d4; margin: .35rem 0 0; }
+  .auth-subtitle { color: #6b7280; margin: .15rem 0 0; }
+  .auth-logo { display:block; margin:0 auto 8px; height:auto; max-width: 200px; }
+
+  /* Card adjustments for compact look */
+  .col-md-4.mx-auto.mt-5 {
+    max-width: 360px;   /* narrower */
+    margin-top: 12px !important;
+  }
+  @media (max-width:576px) {
+    .col-md-4.mx-auto.mt-5 { max-width: 94%; }
+  }
+
+  .card {
+    border: 0;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 16px 50px rgba(10,42,67,.12);
+    overflow: hidden;
+  }
+  .form-title {
+    font-weight: 600;
+    font-size: 1.05rem;
+    padding: 16px;
+    color: #53a5d4;
+    border-bottom: 1px solid #f1f1f1;
+    background: #fafbff;
+    text-align: center;
+  }
+  .card-body { padding: 18px 20px 20px; }
+
+  /* Inputs */
+  .form-group.mb-3 { margin-bottom: 14px; }
+  .form-control {
+    border-radius: 10px;
+    padding: .75rem .9rem;
+    border: 1px solid #e2e8f0;
+    transition: .2s;
+  }
+  .form-control:focus {
+    border-color: #53a5d4;
+    box-shadow: 0 0 0 3px rgba(83,165,212,.25);
+  }
+
+  /* Button (and keep title color in sync) */
+  #login-btn {
+    width: 100%;
+    border-radius: 10px;
+    font-weight: 600;
+    padding: .6rem;
+    background: linear-gradient(90deg, #53a5d4, #53a5d4);
+    border: none;
+    box-shadow: 0 10px 26px rgba(83,165,212,.35);
+    font-size: 0.9rem;
+  }
+  #login-btn:hover { opacity: .95; transform: translateY(-1px); }
+
+  /* Footer link */
+  .login-bottom { text-align: center; font-size: .85rem; margin-top: 8px; }
+  .login-bottom .link { color: #53a5d4; font-weight: 500; text-decoration: none; }
+  .login-bottom .link:hover { text-decoration: underline; }
+</style>
+
+<!-- Background video -->
+<div class="auth-video-bg" aria-hidden="true">
+  <video autoplay muted loop playsinline>
+    <source src="{% static 'img/login-bg.mp4' %}" type="video/mp4">
+  </video>
+</div>
+
+<!-- Hero header -->
+<div class="auth-hero text-center">
+  <img src="{% static 'img/dolphin-login.png' %}" alt="Dolphin One" class="auth-logo" />
+  <h1 class="auth-title">{% trans 'Welcome Back' %}</h1>
+  <p class="auth-subtitle">{% trans 'Sign in to continue your learning journey' %}</p>
+</div>
+
+<div class="col-md-4 mx-auto mt-5">
+  <div class="card">
+    <div class="form-title">
+      <i class="fas fa-lock me-2"></i>
+      {% trans 'Sign in' %}
+    </div>
+    <div class="card-body">
+      <form action="" method="POST" id="login-form">{% csrf_token %}
+        <div class="form-group mb-3">
+          <label class="mb-2" for="username_id">
+            <i class="fas fa-address-card me-2"></i>{% trans 'ID Number' %}
+          </label>
+          <input type="text" name="username" id="username_id" class="form-control" required>
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="mb-2" for="password_id">
+            <i class="fas fa-key me-2"></i>{% trans 'Password' %}
+          </label>
+          <input type="password" name="password" id="password_id" class="form-control" required>
+        </div>
+
+        {% if form.errors %}
+          <span class="text-danger">
+            <i class="fas fa-exclamation-circle"></i> {% trans 'Invalid ID & Password.' %}
+          </span><br>
+        {% endif %}
+
+        <button type="submit" class="btn btn-primary" id="login-btn">
+          <i class="fas fa-sign-in-alt"></i>
+          <small>{% trans 'SIGN IN' %}</small>
+        </button>
+      </form>
+
+      <div class="login-bottom">
+        <a href="{% url 'password_reset' %}" class="link">{% trans 'Forgot password ?' %}</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+
+{% block js %}
+<script>
+  // Only keep submit state for login
+  $('#login-form').on('submit', function () {
+    $('#login-btn')
+      .addClass('disabled')
+      .html(`<i class="fas fa-sign-in-alt"></i> Signing you in . . .`);
+  });
+</script>
+{% endblock %}
