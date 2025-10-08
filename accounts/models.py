@@ -79,6 +79,7 @@ class User(AbstractUser):
         upload_to="profile_pictures/%y/%m/%d/", default="default.png", null=True
     )
     email = models.EmailField(blank=True, null=True)
+    activation_key = models.CharField(max_length=255, blank=True, null=True)
 
     username_validator = ASCIIUsernameValidator()
 

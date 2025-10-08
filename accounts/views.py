@@ -9,6 +9,7 @@ from django.utils.decorators import method_decorator
 from django.views.generic import CreateView
 from django_filters.views import FilterView
 from xhtml2pdf import pisa
+from django.contrib.auth import get_user_model
 
 from accounts.decorators import admin_required
 from accounts.filters import LecturerFilter, StudentFilter
@@ -411,3 +412,20 @@ class ParentAdd(CreateView):
     def form_valid(self, form):
         messages.success(self.request, "Parent added successfully.")
         return super().form_valid(form)
+
+def confirm_email(request, key):
+    """Activates user account when they click confirmation email."""
+    User = get_user_model()
+
+    try:
+        user = User.objects.get(activation_key=key)
+        if not user.is_active:
+            user.is_active = True
+            user.activation_key = ""  # clear key after confirmation
+            user.save()
+            messages.success(request, "Your account has been activated successfully!")
+        else:
+            messages.info(request, "Your account is already active.")
+        return redirect("login")  # redirect to login page
+    except User.DoesNotExist:
+        return HttpResponse("Invalid or expired confirmation link.")

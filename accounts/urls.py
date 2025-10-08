@@ -1,4 +1,5 @@
 from django.urls import path, include
+from . import views
 
 # from django.contrib.auth.views import (
 #     PasswordResetView,
@@ -34,6 +35,7 @@ from .views import (
 
 
 urlpatterns = [
+    path("confirm-email/<str:key>/", views.confirm_email, name="confirm_email"),
     path("", include("django.contrib.auth.urls")),
     path("admin_panel/", admin_panel, name="admin_panel"),
     path("profile/", profile, name="profile"),

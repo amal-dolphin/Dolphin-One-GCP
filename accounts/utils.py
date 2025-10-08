@@ -3,7 +3,8 @@ from datetime import datetime
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from core.utils import send_html_email
-
+from django.utils.crypto import get_random_string 
+import secrets
 
 def generate_password():
     return get_user_model().objects.make_random_password()
@@ -49,14 +50,30 @@ class EmailThread(threading.Thread):
 
 
 def send_new_account_email(user, password):
+    # Generate activation key and deactivate user
+    user.activation_key = secrets.token_urlsafe(32)
+    user.is_active = False
+    user.save()
+
+    # Choose template based on user type
     if user.is_student:
         template_name = "accounts/email/new_student_account_confirmation.html"
     else:
         template_name = "accounts/email/new_lecturer_account_confirmation.html"
+
+    # Build full confirmation link
+    activation_link = f"http://127.0.0.1:8000/en/accounts/confirm-email/{user.activation_key}/"
+
+    # Prepare email
     email = {
-        "subject": "Your SkyLearn account confirmation and credentials",
+        "subject": "Your Dolphin One account confirmation and credentials",
         "recipient_list": [user.email],
         "template_name": template_name,
-        "context": {"user": user, "password": password},
+        "context": {
+            "user": user,
+            "password": password,
+            "activation_link": activation_link,
+        },
     }
+    # Send it asynchronously
     EmailThread(**email).start()
