@@ -322,7 +322,7 @@ def result_sheet_pdf_view(request, id):
 
     print("\nsettings.MEDIA_ROOT", settings.MEDIA_ROOT)
     print("\nsettings.STATICFILES_DIRS[0]", settings.STATICFILES_DIRS[0])
-    logo = settings.STATICFILES_DIRS[0] + "/img/brand.png"
+    logo = settings.STATICFILES_DIRS[0] + "/img/Placid-Academy-Logo.png"
     im = Image(logo, 1 * inch, 1 * inch)
     im.__setattr__("_offs_x", -200)
     im.__setattr__("_offs_y", -45)
@@ -729,7 +729,7 @@ def course_registration_form(request):
 
     # FIRST SEMESTER ENDS HERE
 
-    logo = settings.STATICFILES_DIRS[0] + "/img/brand.png"
+    logo = settings.STATICFILES_DIRS[0] + "/img/Placid-Academy-Logo.png"
     im_logo = Image(logo, 1 * inch, 1 * inch)
     setattr(im_logo, "_offs_x", -218)
     setattr(im_logo, "_offs_y", 480)

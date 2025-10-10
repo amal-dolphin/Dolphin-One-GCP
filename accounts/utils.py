@@ -66,7 +66,7 @@ def send_new_account_email(user, password):
 
     # Prepare email
     email = {
-        "subject": "Your Dolphin One account confirmation and credentials",
+        "subject": "Your Placid Academy account confirmation and credentials",
         "recipient_list": [user.email],
         "template_name": template_name,
         "context": {
