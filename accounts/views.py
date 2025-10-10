@@ -10,6 +10,8 @@ from django.views.generic import CreateView
 from django_filters.views import FilterView
 from xhtml2pdf import pisa
 from django.contrib.auth import get_user_model
+from course.models import CourseAllocation  
+
 
 from accounts.decorators import admin_required
 from accounts.filters import LecturerFilter, StudentFilter
@@ -87,11 +89,18 @@ def profile(request):
     }
 
     if request.user.is_lecturer:
-        courses = Course.objects.filter(
-            allocated_course__lecturer__pk=request.user.id, semester=current_semester
-        )
-        context["courses"] = courses
+        allocations = CourseAllocation.objects.filter(
+         lecturer=request.user
+        ).prefetch_related("courses")
+
+        courses = set()
+        for alloc in allocations:
+            for c in alloc.courses.all():
+                courses.add(c)
+
+        context["courses"] = list(courses)
         return render(request, "accounts/profile.html", context)
+
 
     if request.user.is_student:
         student = get_object_or_404(Student, student__pk=request.user.id)

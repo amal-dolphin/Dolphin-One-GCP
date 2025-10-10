@@ -6,6 +6,7 @@ from core.utils import send_html_email
 from django.utils.crypto import get_random_string 
 import secrets
 
+
 def generate_password():
     return get_user_model().objects.make_random_password()
 
@@ -62,7 +63,7 @@ def send_new_account_email(user, password):
         template_name = "accounts/email/new_lecturer_account_confirmation.html"
 
     # Build full confirmation link
-    activation_link = f"http://127.0.0.1:8000/en/accounts/confirm-email/{user.activation_key}/"
+    activation_link = f"{settings.SITE_DOMAIN}/en/accounts/confirm-email/{user.activation_key}/"
 
     # Prepare email
     email = {

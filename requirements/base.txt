@@ -29,3 +29,5 @@ gopay==2.0.1
 boto3
 django-storages
 
+gunicorn
+psycopg2-binary

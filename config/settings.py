@@ -29,9 +29,9 @@ DEBUG = config("DEBUG", default=False, cast=bool)
 
 ALLOWED_HOSTS = [
     "127.0.0.1",                 # local dev
-    ".elasticbeanstalk.com",     # AWS Elastic Beanstalk default domain
-    "www.dolphin-one.com",       # your custom domain
-    "dolphin-one.com",           # root domain (without www)
+    "dolphin-one-134365728731.us-central1.run.app",  # Cloud Run domain
+    "www.placidacademy.com",                         # your custom domain
+    "placidacademy.com",                         # root domain (without www)
 ]
 
 # change the default user models to our custom model
@@ -83,6 +83,22 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.middleware.locale.LocaleMiddleware",
 ]
+
+# Redirect www to root domain
+if not DEBUG:
+    from django.http import HttpResponsePermanentRedirect
+
+    class WWWRedirectMiddleware:
+        def __init__(self, get_response):
+            self.get_response = get_response
+
+        def __call__(self, request):
+            host = request.get_host()
+            if host.startswith("www."):
+                return HttpResponsePermanentRedirect(f"https://{host[4:]}{request.get_full_path()}")
+            return self.get_response(request)
+
+    MIDDLEWARE.insert(0, "config.settings.WWWRedirectMiddleware")
 
 ROOT_URLCONF = "config.urls"
 
@@ -280,3 +296,14 @@ SEMESTER_CHOICES = (
     (SECOND, _("Level 2")),
     (THIRD, _("Level 3")),
 )
+
+
+# CSRF trusted origins for Cloud Run + custom domains
+CSRF_TRUSTED_ORIGINS = [
+    "https://dolphin-one-134365728731.us-central1.run.app",
+    "https://www.placidacademy.com",
+    "https://placidacademy.com",
+]
+
+# Base URL for emails and absolute links
+SITE_DOMAIN = "https://placidacademy.com"
