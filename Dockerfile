@@ -23,7 +23,7 @@ RUN pip install -r requirements.txt
 COPY . /app/
 
 # Collect static files (optional: you can skip if S3 is handling it)
-# RUN python manage.py collectstatic --noinput
+RUN python manage.py collectstatic --noinput
 
 # Expose the port Cloud Run expects
 EXPOSE 8080
