@@ -34,6 +34,11 @@
                 {% trans 'Upload new video' %}
             </a>
             {% endif %}
+            {% if request.user.is_lecturer %}
+            <a class="btn btn-sm btn-success" href="{% url 'add_student_to_course' course.slug %}">
+                <i class="fas fa-user-plus"></i> {% trans 'Add Student' %}
+            </a>
+            {% endif %}
         </div>
         <div class="ms-auto">
             <a class="btn btn-sm btn-warning" href="{% url 'quiz_index' course.slug %}"><i class="fas fa-list"></i>

@@ -17,7 +17,7 @@
     </ol>
 </nav>
 
-{% if request.user.is_superuser %}
+{% if request.user.is_superuser or request.user.is_lecturer %}
 <div class="manage-wrap">
     <a class="btn btn-sm btn-primary" href="{% url 'course_add' pk=program.pk %}"><i class="fas fa-plus"></i>{% trans 'Add Course' %}</a>
 </div>
@@ -47,7 +47,7 @@
                     <th> {% trans 'Year' %} </th>
                     <th> {% trans 'Semester' %} </th>
                     <th> {% trans 'Current Semester' %} </th>
-                    {% if request.user.is_superuser %}
+                    {% if request.user.is_superuser or request.user.is_lecturer %}
                     <th>{% trans 'Action' %}</th>
                     {% endif %}
                 </tr>
@@ -70,7 +70,7 @@
                         <i class="fas fa-check-circle fa-1-5x"></i>
                         {% endif %}
                     </th>
-                    {% if request.user.is_superuser %}
+                    {% if request.user.is_superuser or request.user.is_lecturer %}
                     <td>
                         <div class="dropstart">
                             <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" 
@@ -93,8 +93,8 @@
                 <tr>
                   <td colspan="9">
                   <span class="text-danger">
-                    {% trans 'No course for this progrm.' %}
-                    {% if request.user.is_superuser %}
+                    {% trans 'No course for this program.' %}
+                    {% if request.user.is_superuser or request.user.is_lecturer %}
                     <a href="{% url 'course_add' pk=program.pk %}" class="text-primary">
                     <i class="primary" style="font-size: 22px;">
                         {% trans 'Add one now.' %}

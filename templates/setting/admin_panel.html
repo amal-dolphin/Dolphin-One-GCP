@@ -22,11 +22,13 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-6">
+            {% if request.user.is_superuser %}
             <div class="border-bottom">
                 {% trans 'Manage' %}<a class="link" href="{% url 'lecturer_list' %}"> {% trans 'Lecturers' %} &raquo;</a>
                 <p class="text-muted">CRUD (Create, Retrieve, Update &amp; Delete) lecturers</p>
             </div>
-
+            {% endif %}
+            
             <div class="border-bottom mt-3">
                 {% trans 'Manage' %}<a class="link" href="{% url 'student_list' %}"> {% trans 'Students' %} &raquo;</a>
             <p class="text-muted">CRUD (Create, Retrieve, Update &amp; Delete) {% trans 'students' %}</p>

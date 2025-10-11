@@ -14,7 +14,7 @@
 
 <!-- <div id="input-nav"><a href="{% url 'home' %}" class="primary1">Home</a> Students</div> -->
 
-{% if request.user.is_superuser %}
+{% if request.user.is_superuser or request.user.is_lecturer %}
 <div class="manage-wrap">
     <a class="btn btn-sm btn-primary" href="{% url 'add_student' %}"><i class="fas fa-plus"></i>{% trans 'Add Student' %}</a>
     <a class="btn btn-sm btn-primary" target="_blank" href="{% url 'student_list_pdf' %}"><i class="fas fa-download"></i>{% trans 'Download pdf' %}</a> <!--new-->
@@ -37,7 +37,7 @@
                 <th> {% trans 'Full Name' %} </th>
                 <th> {% trans 'Email' %} </th>
                 <th> {% trans 'Program' %} </th>
-                {% if request.user.is_superuser %}
+                {% if request.user.is_superuser or request.user.is_lecturer %}
                 <th> {% trans 'Action' %} </th>
                 {% endif %}
             </tr>
@@ -51,7 +51,7 @@
                 <td>{{ student.student.email }} </td>
                 <td>{{ student.program }}</td>
 
-                {% if request.user.is_superuser %}
+                {% if request.user.is_superuser or request.user.is_lecturer %}
                 <td>
                     <div class="dropdown">
                         <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -71,7 +71,7 @@
                   <td colspan="6">
                   <span class="text-danger">
                     {% trans 'No Student.' %}
-                    {% if request.user.is_superuser %}
+                    {% if request.user.is_superuser or request.user.is_lecturer %}
                     <a href="{% url 'add_student' %}">
                     <i class="primary" style="font-size: 22px;">
                         {% trans 'Add Student Now.' %}

@@ -7,10 +7,14 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.decorators import method_decorator
 from django.views.generic import CreateView
 from django_filters.views import FilterView
+from requests import request
+from course.forms import AddStudentToCourseForm
 
 from accounts.decorators import lecturer_required, student_required
+from accounts.views import admin_or_lecturer_required
 from accounts.models import Student
 from core.models import Semester
+import course
 from course.filters import CourseAllocationFilter, ProgramFilter
 from course.forms import (
     CourseAddForm,
@@ -35,7 +39,7 @@ from result.models import TakenCourse
 # ########################################################
 
 
-@method_decorator([login_required, lecturer_required], name="dispatch")
+@method_decorator([login_required, admin_or_lecturer_required], name="dispatch")
 class ProgramFilterView(FilterView):
     filterset_class = ProgramFilter
     template_name = "course/program_list.html"
@@ -47,7 +51,7 @@ class ProgramFilterView(FilterView):
 
 
 @login_required
-@lecturer_required
+@admin_or_lecturer_required
 def program_add(request):
     if request.method == "POST":
         form = ProgramForm(request.POST)
@@ -84,7 +88,7 @@ def program_detail(request, pk):
 
 
 @login_required
-@lecturer_required
+@admin_or_lecturer_required
 def program_edit(request, pk):
     program = get_object_or_404(Program, pk=pk)
     if request.method == "POST":
@@ -102,7 +106,7 @@ def program_edit(request, pk):
 
 
 @login_required
-@lecturer_required
+@admin_or_lecturer_required
 def program_delete(request, pk):
     program = get_object_or_404(Program, pk=pk)
     title = program.title
@@ -137,13 +141,18 @@ def course_single(request, slug):
 
 
 @login_required
-@lecturer_required
+@admin_or_lecturer_required
 def course_add(request, pk):
     program = get_object_or_404(Program, pk=pk)
     if request.method == "POST":
         form = CourseAddForm(request.POST)
         if form.is_valid():
             course = form.save()
+            # If the creator is a lecturer, auto-assign them to the course
+            if request.user.is_lecturer:
+                allocation, created = CourseAllocation.objects.get_or_create(lecturer=request.user)
+                allocation.courses.add(course)
+
             messages.success(
                 request, f"{course.title} ({course.code}) has been created."
             )
@@ -159,7 +168,7 @@ def course_add(request, pk):
 
 
 @login_required
-@lecturer_required
+@admin_or_lecturer_required
 def course_edit(request, slug):
     course = get_object_or_404(Course, slug=slug)
     if request.method == "POST":
@@ -179,7 +188,7 @@ def course_edit(request, slug):
 
 
 @login_required
-@lecturer_required
+@admin_or_lecturer_required
 def course_delete(request, slug):
     course = get_object_or_404(Course, slug=slug)
     title = course.title
@@ -194,7 +203,7 @@ def course_delete(request, slug):
 # ########################################################
 
 
-@method_decorator([login_required, lecturer_required], name="dispatch")
+@method_decorator([login_required, admin_or_lecturer_required], name="dispatch")
 class CourseAllocationFormView(CreateView):
     form_class = CourseAllocationForm
     template_name = "course/course_allocation_form.html"
@@ -215,7 +224,7 @@ class CourseAllocationFormView(CreateView):
         return context
 
 
-@method_decorator([login_required, lecturer_required], name="dispatch")
+@method_decorator([login_required, admin_or_lecturer_required], name="dispatch")
 class CourseAllocationFilterView(FilterView):
     filterset_class = CourseAllocationFilter
     template_name = "course/course_allocation_view.html"
@@ -381,6 +390,71 @@ def handle_video_delete(request, slug, video_slug):
     messages.success(request, f"{title} has been deleted.")
     return redirect("course_detail", slug=slug)
 
+# ########################################################
+# Add Student to Course (Lecturer)
+# ########################################################
+
+@login_required
+@lecturer_required
+def add_student_to_course(request, slug):
+    course = get_object_or_404(Course, slug=slug)
+
+    if request.method == "POST":
+        form = AddStudentToCourseForm(request.POST)
+
+        if form.is_valid():
+            email = form.cleaned_data["email"]
+            first_name = form.cleaned_data.get("first_name", "")
+            last_name = form.cleaned_data.get("last_name", "")
+
+            from accounts.models import User, Student
+            from django.utils.crypto import get_random_string
+
+            # find or create the user
+            user, created = User.objects.get_or_create(
+                email=email,
+                defaults={
+                    "username": email.split("@")[0],
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "is_student": True,
+                },
+            )
+
+            # if new, set password + send email
+            if created:
+                password = get_random_string(10)
+                user.set_password(password)
+                user.is_active = True  # keep them active so they can log in immediately
+                user.save()
+
+                from accounts.utils import send_new_account_email
+                send_new_account_email(user, password)
+
+
+            # always ensure Student record exists
+            student_profile, _ = Student.objects.get_or_create(student=user)
+
+            # link student to the course
+            from result.models import TakenCourse
+            if not TakenCourse.objects.filter(student=student_profile, course=course).exists():
+                TakenCourse.objects.create(student=student_profile, course=course)
+                full_name = user.get_full_name() if callable(user.get_full_name) else user.get_full_name
+                messages.success(request, f"{full_name} has been added to {course.title}.")
+
+            else:
+                full_name = user.get_full_name() if callable(user.get_full_name) else user.get_full_name
+                messages.info(request, f"{full_name} is already enrolled in {course.title}.")
+
+            return redirect("course_detail", slug=slug)
+    else:
+        form = AddStudentToCourseForm()
+
+    return render(
+        request,
+        "course/add_student_to_course.html",
+        {"title": f"Add Student to {course.title}", "form": form, "course": course},
+    )
 
 # ########################################################
 # Course Registration Views

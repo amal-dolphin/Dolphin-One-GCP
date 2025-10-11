@@ -14,6 +14,7 @@ urlpatterns = [
     path("<int:pk>/course/add/", views.course_add, name="course_add"),
     path("course/<slug>/edit/", views.course_edit, name="edit_course"),
     path("course/delete/<slug>/", views.course_delete, name="delete_course"),
+    path("courses/<slug:slug>/add-student/", views.add_student_to_course, name="add_student_to_course"),
     # CourseAllocation urls
     path(
         "course/assign/",

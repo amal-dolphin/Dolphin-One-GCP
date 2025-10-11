@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.conf import settings
 from core.utils import send_html_email
 from django.utils.crypto import get_random_string 
+from django.core.mail import send_mail
 import secrets
 
 

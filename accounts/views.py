@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.forms import PasswordChangeForm
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -42,6 +43,11 @@ def render_to_pdf(template_name, context):
         return HttpResponse("We had some problems generating the PDF")
     return response
 
+def admin_or_lecturer_required(view_func):
+    """Allow both admins and lecturers to access."""
+    return user_passes_test(
+        lambda u: u.is_authenticated and (u.is_superuser or getattr(u, "is_lecturer", False))
+    )(view_func)
 
 # ########################################################
 # Authentication and Registration
@@ -124,7 +130,7 @@ def profile(request):
 
 
 @login_required
-@admin_required
+@admin_or_lecturer_required
 def profile_single(request, user_id):
     """Show profile of any selected user."""
     if request.user.id == user_id:
@@ -175,7 +181,7 @@ def profile_single(request, user_id):
 
 
 @login_required
-@admin_required
+@admin_or_lecturer_required
 def admin_panel(request):
     return render(request, "setting/admin_panel.html", {"title": "Admin Panel"})
 
@@ -305,7 +311,7 @@ def delete_staff(request, pk):
 
 
 @login_required
-@admin_required
+@admin_or_lecturer_required
 def student_add_view(request):
     if request.method == "POST":
         form = StudentAddForm(request.POST)
@@ -328,7 +334,7 @@ def student_add_view(request):
 
 
 @login_required
-@admin_required
+@admin_or_lecturer_required
 def edit_student(request, pk):
     student_user = get_object_or_404(User, is_student=True, pk=pk)
     if request.method == "POST":
@@ -346,12 +352,28 @@ def edit_student(request, pk):
     )
 
 
-@method_decorator([login_required, admin_required], name="dispatch")
+@method_decorator([login_required, admin_or_lecturer_required], name="dispatch")
 class StudentListView(FilterView):
-    queryset = Student.objects.all()
     filterset_class = StudentFilter
     template_name = "accounts/student_list.html"
     paginate_by = 10
+
+    def get_queryset(self):
+        from course.models import CourseAllocation
+        user = self.request.user
+
+        # Admins see all students
+        if user.is_superuser:
+            return Student.objects.all()
+
+        # Lecturers only see their students
+        elif getattr(user, "is_lecturer", False):
+            allocations = CourseAllocation.objects.filter(lecturer=user)
+            courses = allocations.values_list("courses", flat=True)
+            return Student.objects.filter(takencourse__course__in=courses).distinct()
+
+        # Others see nothing
+        return Student.objects.none()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -360,7 +382,7 @@ class StudentListView(FilterView):
 
 
 @login_required
-@admin_required
+@admin_or_lecturer_required
 def render_student_pdf_list(request):
     students = Student.objects.all()
     template_path = "pdf/student_list.html"
@@ -376,7 +398,7 @@ def render_student_pdf_list(request):
 
 
 @login_required
-@admin_required
+@admin_or_lecturer_required
 def delete_student(request, pk):
     student = get_object_or_404(Student, pk=pk)
     full_name = student.student.get_full_name
@@ -386,7 +408,7 @@ def delete_student(request, pk):
 
 
 @login_required
-@admin_required
+@admin_or_lecturer_required
 def edit_student_program(request, pk):
     student = get_object_or_404(Student, student_id=pk)
     user = get_object_or_404(User, pk=pk)
@@ -412,7 +434,7 @@ def edit_student_program(request, pk):
 # ########################################################
 
 
-@method_decorator([login_required, admin_required], name="dispatch")
+@method_decorator([login_required, admin_or_lecturer_required], name="dispatch")
 class ParentAdd(CreateView):
     model = Parent
     form_class = ParentAddForm

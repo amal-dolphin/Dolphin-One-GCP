@@ -951,7 +951,7 @@ msgid "Drop Course"
 msgstr ""
 
 #: templates/aside.html:119
-msgid "Account Setting"
+msgid "Account Settings"
 msgstr ""
 
 #: templates/aside.html:122 templates/setting/password_change.html:21

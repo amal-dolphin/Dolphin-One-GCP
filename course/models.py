@@ -80,9 +80,13 @@ class Course(models.Model):
 
     @property
     def is_current_semester(self):
+        from core.models import Semester
+        current_sem = Semester.objects.filter(is_current_semester=True).first()
+        if not current_sem:
+            return False
 
-        current_semester = Semester.objects.filter(is_current_semester=True).first()
-        return self.semester == current_semester.semester if current_semester else False
+    # Compare course.semester text (like "First", "Second") with active semester label
+        return str(self.semester).strip().lower() == str(current_sem.semester).strip().lower()
 
 
 @receiver(pre_save, sender=Course)

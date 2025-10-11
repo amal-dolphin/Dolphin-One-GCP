@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Add Student to {{ course.title }}{% endblock %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/">{% trans "Home" %}</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'course_detail' slug=course.slug %}">{{ course.title }}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{% trans "Add Student" %}</li>
+  </ol>
+</nav>
+
+<div class="container mt-4">
+  <h2 class="mb-3">Add Student to {{ course.title }}</h2>
+  {% include "snippets/messages.html" %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="mb-3">
+      <label for="id_email" class="form-label">Student Email</label>
+      {{ form.email }}
+    </div>
+    <button type="submit" class="btn btn-primary">Add Student</button>
+    <a href="{% url 'course_detail' slug=course.slug %}" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+{% endblock %}

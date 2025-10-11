@@ -105,3 +105,9 @@ class UploadFormVideo(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["title"].widget.attrs.update({"class": "form-control"})
         self.fields["video"].widget.attrs.update({"class": "form-control"})
+
+# Lecturer adds student by email
+from accounts.models import Student
+
+class AddStudentToCourseForm(forms.Form):
+    email = forms.EmailField(label="Student Email")

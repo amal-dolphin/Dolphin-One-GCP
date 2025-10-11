@@ -140,6 +140,9 @@ DATABASES = {
     }
 }
 
+DATABASES['default']['ATOMIC_REQUESTS'] = True
+
+
 # https://docs.djangoproject.com/en/stable/ref/settings/#std:setting-DEFAULT_AUTO_FIELD
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -287,14 +290,14 @@ LEVEL_CHOICES = (
     (A_DEGREE, _("ADVANCED")),
 )
 
-FIRST = "Level 1"
-SECOND = "Level 2"
-THIRD = "Level 3"
+FIRST = "First"
+SECOND = "Second"
+THIRD = "Third"
 
 SEMESTER_CHOICES = (
-    (FIRST, _("Level 1")),
-    (SECOND, _("Level 2")),
-    (THIRD, _("Level 3")),
+    (FIRST, _("First")),
+    (SECOND, _("Second")),
+    (THIRD, _("Third")),
 )
 
 
