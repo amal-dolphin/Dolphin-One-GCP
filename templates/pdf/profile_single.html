@@ -47,7 +47,18 @@
       <p class="h5">{% trans 'Applicant Info' %}</p>
       <div class="dashboard-description">
         <p><strong>{% trans 'School:' %}</strong>{% trans 'Placid Academy' %}</p>
-        <p><strong>{% trans 'Level:' %}</strong> {{ level.level }}</p>
+       <!--<p><strong>{% trans 'Level:' %}</strong> {{ level.level }}</p>-->
+      <p class="h5">{% trans 'My Courses' %}</p>
+      {% if courses %}
+      <ul class="list-group">
+        {% for course in courses %}
+        <li class="list-group-item">{{ course }}</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="text-danger">{% trans 'No courses assigned!' %}</div>
+      {% endif %}
+      <hr class="my-0">
       </div>
       {% endif %}
 

@@ -311,26 +311,37 @@ class QuizTake(FormView):
         return context
 
     def final_result_user(self):
+        from django.utils import timezone
         self.sitting.mark_quiz_complete()
+
+        # Update or create the Sitting so it always syncs in Grades tab
+        sitting_obj, created = Sitting.objects.update_or_create(
+            user=self.request.user,
+            quiz=self.quiz,
+            course=self.course,
+            defaults={
+                "score": self.sitting.get_current_score,
+                "complete": True,
+                "end": timezone.now(),
+            },
+        )
+
         results = {
             "course": self.course,
             "quiz": self.quiz,
             "score": self.sitting.get_current_score,
             "max_score": self.sitting.get_max_score,
             "percent": self.sitting.get_percent_correct,
-            "sitting": self.sitting,
+            "sitting": sitting_obj,  # use the saved one
             "previous": getattr(self, "previous", {}),
         }
 
         if self.quiz.answers_at_end:
             results["questions"] = self.sitting.get_questions(with_answers=True)
-            results["incorrect_questions"] = self.sitting.get_incorrect_questions
+            results["incorrect_questions"] = self.sitting.get_incorrect_questions()
 
-        if (
-            not self.quiz.exam_paper
-            or self.request.user.is_superuser
-            or self.request.user.is_lecturer
-        ):
+        # Keep the sitting record for students (don’t delete it)
+        if self.request.user.is_superuser or self.request.user.is_lecturer:
             self.sitting.delete()
-
         return render(self.request, self.result_template_name, results)
+

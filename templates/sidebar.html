@@ -26,6 +26,8 @@
 		{% url 'course_registration' as cr %} {% url 'edit_profile' as ep %} {% url 'change_password' as cp %}
 		{% url 'quiz_progress' as qpr %} {% url 'quiz_marking' as qce %} {% url 'user_course_list' as ucl %}
 		{% url 'admin_panel' as admin_p %}
+		{% url 'quiz_index' slug='sample-course' as quiz_index %}
+		{% url 'grades' as grades %}
 		
 
 
@@ -96,16 +98,31 @@
 			{% endif %}
 
 			{% if request.user.is_student %}
-			<li class="{% if request.path == qpr %}active{% endif %}">
-				<a href="{% url 'quiz_progress' %}"><i class="fas fa-record-vinyl"></i>{% trans 'Quiz Progress Rec' %}</a>
-			</li>
-			<li class="{% if request.path == vr %}active{% endif %}">
-				<a href="{% url 'grade_results' %}"><i class="fa fa-spell-check"></i>{% trans 'Grade Results' %}</a>
-			</li>
-			<li class="{% if request.path == ar %}active{% endif %}">
-				<a href="{% url 'ass_results' %}"><i class="fa fa-list-ol"></i> {% trans 'Assesment Results' %}</a>
-			</li>
-			{% endif %}
+<li class="{% if request.resolver_match.url_name == 'quiz_index' %}active{% endif %}">
+  {% with student=request.user.student %}
+    {% if student.program and student.program.course_set.exists %}
+      {% with first_course=student.program.course_set.first %}
+        <a href="{% url 'quiz_index' slug=first_course.slug %}">
+          <i class="fa fa-file-alt"></i>
+          {% trans 'Exams & Quizzes' %}
+        </a>
+      {% endwith %}
+    {% else %}
+      <a href="#" onclick="alert('No courses found! Please enroll in a program with available courses.')">
+        <i class="fa fa-file-alt"></i>
+        {% trans 'Exams & Quizzes' %}
+      </a>
+    {% endif %}
+  {% endwith %}
+</li>
+
+<li class="{% if request.resolver_match.url_name == 'grades' %}active{% endif %}">
+  <a href="{% url 'grades' %}">
+    <i class="fa fa-graduation-cap"></i>
+    {% trans 'Grades' %}
+  </a>
+</li>
+{% endif %}
 			<br />
 			<p class="ms-3 text-secondary">&RightArrow; Others</p>
 			<li class="{% if request.path == ep %}active{% endif %}">

@@ -27,6 +27,7 @@ from accounts.models import Parent, Student, User
 from core.models import Semester, Session
 from course.models import Course
 from result.models import TakenCourse
+from quiz.models import Sitting
 
 # ########################################################
 # Utility Functions
@@ -427,6 +428,32 @@ def edit_student_program(request, pk):
         "accounts/edit_student_program.html",
         {"title": "Edit Program", "form": form, "student": student},
     )
+
+@login_required
+def grades_view(request):
+    """Grades & Assessments page for students."""
+    if not getattr(request.user, "is_student", False):
+        messages.error(request, "Only students can view this page.")
+        return redirect("profile")
+
+    student = request.user
+    sittings = (
+        Sitting.objects.filter(user=student, complete=True)
+        .select_related("quiz", "course")
+        .order_by("quiz__category")
+    )
+
+    grouped = {
+        "Exams": [s for s in sittings if s.quiz.category.lower() == "exam"],
+        "Quizzes": [
+            s
+            for s in sittings
+            if s.quiz.category.lower() in ["practice", "assignment", "quiz"]
+        ],
+    }
+
+    context = {"grouped": grouped, "title": "Grades & Assessments"}
+    return render(request, "result/grades.html", context)
 
 
 # ########################################################

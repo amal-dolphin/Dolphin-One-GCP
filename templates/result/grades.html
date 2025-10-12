@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }} | {% trans "Learning Management System" %}{% endblock title %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/">{% trans "Home" %}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{% trans "Grades & Assessments" %}</li>
+  </ol>
+</nav>
+
+{% include 'snippets/messages.html' %}
+
+<div class="title-1"><i class="fas fa-table"></i>{% trans "Grades & Assessments" %}</div>
+<p>{% trans "Below are your recent exam and quiz results" %}</p>
+
+{% for category, items in grouped.items %}
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">{{ category }}</h5>
+      {% if items %}
+        <span class="badge bg-secondary">{{ items|length }} total</span>
+      {% endif %}
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-striped mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>{% trans "Title" %}</th>
+            <th>{% trans "Course" %}</th>
+            <th>{% trans "Score" %}</th>
+            <th>{% trans "Date Taken" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sitting in items %}
+            <tr>
+              <td>{{ sitting.quiz.title }}</td>
+              <td>{{ sitting.course.name }}</td>
+              <td>
+                {% with sitting.get_percent_correct as pct %}
+                  {% if pct >= 70 %}
+                    <span class="badge bg-success">{{ pct }}%</span>
+                  {% elif pct >= 50 %}
+                    <span class="badge bg-warning text-dark">{{ pct }}%</span>
+                  {% else %}
+                    <span class="badge bg-danger">{{ pct }}%</span>
+                  {% endif %}
+                {% endwith %}
+              </td>
+              <td>{{ sitting.end|date:"M d, Y" }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4" class="text-center text-muted py-3">
+                {% trans "No" %} {{ category|lower }} {% trans "available." %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endfor %}
+
+{% endblock %}

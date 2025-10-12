@@ -1,4 +1,5 @@
 from django.urls import path
+from accounts import views as account_views
 
 from .views import (
     home_view,
@@ -32,4 +33,5 @@ urlpatterns = [
     path("semester/<int:pk>/edit/", semester_update_view, name="edit_semester"),
     path("semester/<int:pk>/delete/", semester_delete_view, name="delete_semester"),
     path("dashboard/", dashboard_view, name="dashboard"),
+    path("grades/", account_views.grades_view, name="grades"),
 ]
