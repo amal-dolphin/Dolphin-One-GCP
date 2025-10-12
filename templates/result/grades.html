@@ -15,6 +15,33 @@
 
 <div class="title-1"><i class="fas fa-table"></i>{% trans "Grades & Assessments" %}</div>
 <p>{% trans "Below are your recent exam and quiz results" %}</p>
+<style>
+  .grade-table th, .grade-table td {
+    vertical-align: middle !important;
+    text-align: left !important;
+    padding: 10px 12px;
+  }
+
+  .grade-table th {
+    background-color: #f9fafb;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+  }
+
+  .grade-table td {
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .card {
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    font-weight: 600;
+    font-size: 18px;
+  }
+</style>
 
 {% for category, items in grouped.items %}
   <div class="card mb-4 shadow-sm">
@@ -25,20 +52,26 @@
       {% endif %}
     </div>
     <div class="card-body p-0">
-      <table class="table table-striped mb-0">
+      <table class="table table-striped mb-0 grade-table">
         <thead class="table-light">
           <tr>
-            <th>{% trans "Title" %}</th>
-            <th>{% trans "Course" %}</th>
-            <th>{% trans "Score" %}</th>
-            <th>{% trans "Date Taken" %}</th>
+            <th style="width: 40%;">{% trans "Title" %}</th>
+            <th style="width: 25%;">{% trans "Course" %}</th>
+            <th style="width: 15%;">{% trans "Score" %}</th>
+            <th style="width: 20%;">{% trans "Date Taken" %}</th>
           </tr>
         </thead>
         <tbody>
           {% for sitting in items %}
             <tr>
               <td>{{ sitting.quiz.title }}</td>
-              <td>{{ sitting.course.name }}</td>
+              <td>
+                {% if sitting.course %}
+                  {{ sitting.course.title }}
+                {% else %}
+                  <span class="text-muted">N/A</span>
+                {% endif %}
+              </td>
               <td>
                 {% with sitting.get_percent_correct as pct %}
                   {% if pct >= 70 %}

@@ -338,7 +338,7 @@ class QuizTake(FormView):
 
         if self.quiz.answers_at_end:
             results["questions"] = self.sitting.get_questions(with_answers=True)
-            results["incorrect_questions"] = self.sitting.get_incorrect_questions()
+            results["incorrect_questions"] = self.sitting.get_incorrect_questions
 
         # Keep the sitting record for students (don’t delete it)
         if self.request.user.is_superuser or self.request.user.is_lecturer:

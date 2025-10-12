@@ -26,7 +26,7 @@ CHOICE_ORDER_OPTIONS = (
 )
 
 CATEGORY_OPTIONS = (
-    ("assignment", _("Assignment")),
+    ("assignment", _("Quiz")),
     ("exam", _("Exam")),
     ("practice", _("Practice Quiz")),
 )

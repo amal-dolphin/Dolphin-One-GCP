@@ -80,7 +80,7 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 choices=[
-                    ("assignment", "Assignment"),
+                    ("assignment", "Quiz"),
                     ("exam", "Exam"),
                     ("practice", "Practice Quiz"),
                 ],

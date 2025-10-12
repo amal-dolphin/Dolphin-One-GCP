@@ -1513,7 +1513,7 @@ msgid "Current Semester"
 msgstr ""
 
 #: templates/course/program_single.html:92
-msgid "No course for this progrm."
+msgid "No course for this program"
 msgstr ""
 
 #: templates/course/program_single.html:96

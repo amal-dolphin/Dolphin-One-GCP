@@ -1,3 +1,4 @@
+from multiprocessing import context
 from django.shortcuts import render, get_object_or_404
 from django.contrib import messages
 from django.http import HttpResponseRedirect
@@ -26,6 +27,7 @@ from core.models import Session, Semester
 from course.models import Course
 from accounts.models import Student
 from accounts.decorators import lecturer_required, student_required
+from quiz.models import Sitting
 from .models import TakenCourse, Result
 
 
@@ -89,6 +91,7 @@ def add_score_for(request, id):
         #  course__id=id).filter(
         #  student__allocated_student__lecturer__pk=request.user.id).filter(
         #  course__semester=current_semester)
+    
         students = (
             TakenCourse.objects.filter(
                 course__allocated_course__lecturer__pk=request.user.id
@@ -96,16 +99,44 @@ def add_score_for(request, id):
             .filter(course__id=id)
             .filter(course__semester=current_semester)
         )
+
+        # --- Auto sync scores from quiz system ---
+        for taken in students:
+            sittings = Sitting.objects.filter(
+                user=taken.student.student, course=taken.course, complete=True
+        )
+        if sittings.exists():
+            avg_score = sum([s.get_percent_correct for s in sittings]) / sittings.count()
+            taken.quiz = round(avg_score, 2)
+            taken.total = taken.get_total()  # recalc total if your model supports it
+            taken.grade = taken.get_grade()
+            taken.save()
+            
         context = {
             "title": "Submit Score",
             "courses": courses,
             "course": course,
-            # "myclass": myclass,
             "students": students,
             "current_session": current_session,
             "current_semester": current_semester,
-        }
+        }       
         return render(request, "result/add_score_for.html", context)
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     if request.method == "POST":
         ids = ()

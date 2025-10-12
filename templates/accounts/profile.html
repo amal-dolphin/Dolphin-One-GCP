@@ -86,7 +86,24 @@
                     <!--<p><strong>{% trans 'Level:' %} </strong>{{ level.level }}</p>-->
                 </div>
                 {% endif %}
-    
+                
+                {% if user.is_student %}
+                <hr>
+                <p class="fw-bold"><i class="fas fa-book-open me-2"></i>{% trans 'My Courses' %}</p>
+                {% if taken_courses %}
+                <ul>
+                {% for tc in taken_courses %}
+                    <li>
+                        <a href="{{ tc.course.get_absolute_url }}" class="text-primary">
+                            {{ tc.course.title }} ({{ tc.course.code }})
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="text-muted">{% trans 'No registered courses yet.' %}</div>
+                {% endif %}
+                {% endif %}
                 <hr>
                 <p class="fw-bold"><i class="me-2 fas fa-phone-square-alt"></i>{% trans 'Contact Info' %}</p>
                 <div class="dashboard-description">

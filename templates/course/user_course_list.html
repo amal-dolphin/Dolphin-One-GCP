@@ -27,7 +27,7 @@
 
 {% if request.user.is_student %}
 <div class="table-responsive p-3 mt-3">
-    <h6 class="fw-bold text-primary"><u>{% trans 'Taken Courses:' %}</u></h6>
+    <h6 class="fw-bold text-primary"><u>{% trans 'Current Courses:' %}</u></h6>
     <div class="table-shadow">
         <table class="table table-light">
             <thead>
@@ -70,57 +70,34 @@
 </div>
 {% endif %}
 
-<div class="table-responsive p-3">
-    <h6 class="fw-bold text-primary"><u>{% trans 'All Courses:' %}</u></h6>
+{% if request.user.is_lecturer %}
+<div class="table-responsive p-3 mt-3">
+    <h6 class="fw-bold text-primary"><u>{% trans 'Assigned Courses:' %}</u></h6>
     <div class="table-shadow">
         <table class="table table-light">
             <thead>
                 <tr>
                     <th>#</th>
-                    <th> {% trans 'Course Name' %} </th>
-                    <th> {% trans 'Course Code' %} </th>
-                    <th> {% trans 'Cr.Hr' %} </th>
-                    <th> {% trans 'Year' %} </th>
-                    <th> {% trans 'Semester' %} </th>
-                    <th> {% trans 'Current Semester' %} </th>
+                    <th>{% trans 'Course Name' %}</th>
+                    <th>{% trans 'Course Code' %}</th>
+                    <th>{% trans 'Year' %}</th>
+                    <th>{% trans 'Semester' %}</th>
                 </tr>
             </thead>
             <tbody>
                 {% for course in courses %}
                 <tr>
-                    <td>{{ forloop.counter }}.</td> 
-                    <td><a href="{{ course.get_absolute_url }}">
-                        {{ course.title }}</a></td>
+                    <td>{{ forloop.counter }}.</td>
+                    <td><a href="{{ course.get_absolute_url }}">{{ course.title }}</a></td>
                     <td>{{ course.code }}</td>
-                    <td>{{ course.credit }}</td>
                     <td>{{ course.year }}</td>
                     <td>{{ course.semester }}</td>
-                    <th>
-                        {% if course.is_current_semester == False %}
-                        <i class="fas fa-times-circle fa-1-5x danger"></i>
-                        {% else %}
-                        <i class="fas fa-check-circle"></i>
-                        {% endif %}
-                    </th>
                 </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center text-muted py-3">{% trans 'No assigned courses found.' %}</td></tr>
                 {% endfor %}
             </tbody>
         </table>
-    </div>
-</div>
-
-{% if courses.paginator.page_range|length > 1 %}
-<div class="content-center">
-    <div class="pagination">
-        <a href="?page=1">&laquo;</a>
-        {% for i in courses.paginator.page_range %}
-            {% if i == courses.number %}
-                <a class="pagination-active" href="?page={{ i }}"><b>{{ i }}</b></a>
-            {% else %}
-                <a href="?page={{ i }}">{{ i }}</a>
-            {% endif %}
-        {% endfor %}
-        <a href="?page={{ courses.paginator.num_pages }}">&raquo;</a>
     </div>
 </div>
 {% endif %}

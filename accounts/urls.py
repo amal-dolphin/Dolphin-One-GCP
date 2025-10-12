@@ -35,6 +35,7 @@ from .views import (
 
 
 urlpatterns = [
+    path("my-courses/", views.user_course_list, name="user_course_list"),
     path("grades/", views.grades_view, name="grades"),
     path("confirm-email/<str:key>/", views.confirm_email, name="confirm_email"),
     path("", include("django.contrib.auth.urls")),

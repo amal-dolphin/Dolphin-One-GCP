@@ -1,3 +1,4 @@
+from urllib import request
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
@@ -94,6 +95,11 @@ def profile(request):
         "current_session": current_session,
         "current_semester": current_semester,
     }
+
+    if request.user.is_student:
+        student = Student.objects.get(student=request.user)
+        taken_courses = TakenCourse.objects.filter(student=student)
+        context["taken_courses"] = taken_courses
 
     if request.user.is_lecturer:
         allocations = CourseAllocation.objects.filter(
@@ -455,6 +461,51 @@ def grades_view(request):
     context = {"grouped": grouped, "title": "Grades & Assessments"}
     return render(request, "result/grades.html", context)
 
+
+@login_required
+def user_course_list(request):
+    """Unified 'My Courses' view for both students and lecturers."""
+    from course.models import CourseAllocation
+    from result.models import TakenCourse
+    from core.models import Semester, Session
+
+    current_session = Session.objects.filter(is_current_session=True).first()
+    current_semester = Semester.objects.filter(
+        is_current_semester=True, session=current_session
+    ).first()
+
+    context = {"current_semester": current_semester}
+
+    # --- Student view ---
+    if getattr(request.user, "is_student", False):
+        student = get_object_or_404(Student, student__pk=request.user.id)
+        taken_courses = TakenCourse.objects.filter(
+            student__student__id=request.user.id,
+            course__semester=current_semester
+        ).select_related("course")
+
+        context["student"] = student
+        context["taken_courses"] = taken_courses
+        return render(request, "accounts/user_course_list.html", context)
+
+    # --- Lecturer view ---
+    elif getattr(request.user, "is_lecturer", False):
+        allocations = CourseAllocation.objects.filter(
+            lecturer=request.user,
+            courses__semester=current_semester
+        ).prefetch_related("courses")
+
+        courses = set()
+        for alloc in allocations:
+            for c in alloc.courses.all():
+                courses.add(c)
+
+        context["courses"] = list(courses)
+        return render(request, "accounts/user_course_list.html", context)
+
+    # --- Default (admin/others) ---
+    messages.info(request, "Only students and lecturers can access this page.")
+    return redirect("profile")
 
 # ########################################################
 # Parent Views

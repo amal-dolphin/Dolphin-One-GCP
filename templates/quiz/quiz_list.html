@@ -16,17 +16,18 @@
         {% endif %}
         <li class="breadcrumb-item"><a href="{% url 'program_detail' pk=1 %}">{{ course.program }}</a></li>
         <li class="breadcrumb-item"><a href="{{ course.get_absolute_url }}">{{ course }}</a></li>
-        <li class="breadcrumb-item active" aria-current="page">{% trans 'Quizzes' %}</li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'Assessments' %}</li>
     </ol>
 </nav>
 
 {% if request.user.is_superuser or request.user.is_lecturer %}
 <div class="manage-wrap">
-    <a class="btn btn-primary" href="{% url 'quiz_create' course.slug %}"><i class="fas fa-plus"></i>{% trans 'Add Quiz' %}</a>
+    <a class="btn btn-primary" href="{% url 'quiz_create' course.slug %}"><i class="fas fa-plus"></i>{% trans 'Add
+        Assessment' %}</a>
 </div>
 {% endif %}
 
-<div class="title-1">{% trans 'Quizzes' %} [{{ course|truncatechars:25 }}]</div>
+<div class="title-1">{% trans 'Assessments' %} [{{ course|truncatechars:25 }}]</div>
 <br>
 <br>
 
@@ -39,7 +40,15 @@
         <div class="col-md-4 mb-2">
             <div class="card p-2 quiz-wrapper">
                 <div class="d-flex justify-content-between align-items-center text-success mb-4">
-                    <em class="text-left">{{ quiz.category|title }} {% trans 'Quiz' %}</em>
+                    <em class="text-left">
+                        {% if quiz.category == "practice" %}
+                        Practice Quiz
+                        {% elif quiz.category == "exam" %}
+                        Exam
+                        {% else %}
+                        Quiz
+                        {% endif %}
+                    </em>
                     <div class="text-right text-light bg-danger px-2 small rounded">
                         {{ quiz.get_questions.count }} {% trans 'Questions' %}
                     </div>
@@ -58,20 +67,25 @@
                 {% endif %}
 
                 <div class="d-flex align-items-center">
-                    <a class="btn btn-block btn-secondary w-100" href="{% url 'quiz_take' pk=course.pk slug=quiz.slug %}">{% trans "Start quiz" %} &raquo;</a>
+                    <a class="btn btn-block btn-secondary w-100"
+                        href="{% url 'quiz_take' pk=course.pk slug=quiz.slug %}">{% trans "Start Assessment" %}
+                        &raquo;</a>
 
                     {% if request.user.is_superuser or request.user.is_lecturer %}
-                        <div class="dropup">
-                            <button class="btn btn-sm p-0 ms-2" type="button" data-bs-toggle="dropdown"><i class="fas fa-ellipsis-v m-0"></i></button>
-                            <div class="dropdown-menu" aria-labelledby="dropdown01">
-                                <div class="dropdown-item">
-                                    <a href="{% url 'quiz_update' slug=course.slug pk=quiz.id %}" class="update"><i class="unstyled me-2 fas fa-pencil-alt"></i>{% trans 'Edit' %}</a>
-                                </div>
-                                <div class="dropdown-item">
-                                    <a href="{% url 'quiz_delete' slug=course.slug pk=quiz.id %}" class="delete"><i class="unstyled me-2 fas fa-trash-alt"></i>{% trans 'Delete' %}</a>
-                                </div>
+                    <div class="dropup">
+                        <button class="btn btn-sm p-0 ms-2" type="button" data-bs-toggle="dropdown"><i
+                                class="fas fa-ellipsis-v m-0"></i></button>
+                        <div class="dropdown-menu" aria-labelledby="dropdown01">
+                            <div class="dropdown-item">
+                                <a href="{% url 'quiz_update' slug=course.slug pk=quiz.id %}" class="update"><i
+                                        class="unstyled me-2 fas fa-pencil-alt"></i>{% trans 'Edit' %}</a>
+                            </div>
+                            <div class="dropdown-item">
+                                <a href="{% url 'quiz_delete' slug=course.slug pk=quiz.id %}" class="delete"><i
+                                        class="unstyled me-2 fas fa-trash-alt"></i>{% trans 'Delete' %}</a>
                             </div>
                         </div>
+                    </div>
                     {% endif %}
                 </div>
             </div>
@@ -79,7 +93,7 @@
 
         {% empty %}
         <h4 class="text-center mt-5 py-5 text-muted">
-            <i class="fa-regular fa-folder-open me-2"></i> Course quizzes will appear here.
+            <i class="fa-regular fa-folder-open me-2"></i> Course assessments will appear here.
         </h4>
         {% endfor %}
     </div>
@@ -92,7 +106,7 @@
     // #####################################
     // loader
     // document.getElementById('progress-main').style.display = 'none';
-    var timer = setInterval(function(){
+    var timer = setInterval(function () {
         document.getElementById('progress-card').style.display = 'none';
         document.getElementById('progress-main').style.display = 'block';
         clearInterval(timer)
