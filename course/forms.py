@@ -17,15 +17,15 @@ class ProgramForm(forms.ModelForm):
 class CourseAddForm(forms.ModelForm):
     class Meta:
         model = Course
-        fields = "__all__"
+        exclude = ["credit"]  
+        widgets = {
+            "title": forms.TextInput(attrs={"class": "form-control"}),  
+            "summary": forms.Textarea(attrs={"class": "form-control", "rows": 3}), 
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["title"].widget.attrs.update({"class": "form-control"})
         self.fields["code"].widget.attrs.update({"class": "form-control"})
-        # self.fields['courseUnit'].widget.attrs.update({'class': 'form-control'})
-        self.fields["credit"].widget.attrs.update({"class": "form-control"})
-        self.fields["summary"].widget.attrs.update({"class": "form-control"})
         self.fields["program"].widget.attrs.update({"class": "form-control"})
         self.fields["level"].widget.attrs.update({"class": "form-control"})
         self.fields["year"].widget.attrs.update({"class": "form-control"})

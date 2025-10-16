@@ -21,7 +21,7 @@ class ProgramManager(models.Manager):
 
 
 class Program(models.Model):
-    title = models.CharField(max_length=150, unique=True)
+    title = models.TextField(unique=True, blank=True, null=True)
     summary = models.TextField(blank=True)
 
     objects = ProgramManager()
@@ -60,10 +60,10 @@ class CourseManager(models.Manager):
 
 class Course(models.Model):
     slug = models.SlugField(unique=True, blank=True)
-    title = models.CharField(max_length=200)
+    title = models.TextField(blank=True, null=True)
     code = models.CharField(max_length=200, unique=True)
     credit = models.IntegerField(default=0)
-    summary = models.TextField(max_length=200, blank=True)
+    summary = models.TextField(blank=True, null=True)
     program = models.ForeignKey(Program, on_delete=models.CASCADE)
     level = models.CharField(max_length=25, choices=settings.LEVEL_CHOICES)
     year = models.IntegerField(choices=settings.YEARS, default=1)
@@ -125,7 +125,7 @@ class CourseAllocation(models.Model):
 
 
 class Upload(models.Model):
-    title = models.CharField(max_length=100)
+    title = models.TextField(blank=True, null=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     file = models.FileField(
         upload_to="course_files/",
@@ -197,7 +197,7 @@ def log_upload_delete(sender, instance, **kwargs):
 
 
 class UploadVideo(models.Model):
-    title = models.CharField(max_length=100)
+    title = models.TextField(blank=True, null=True)
     slug = models.SlugField(unique=True, blank=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     video = models.FileField(

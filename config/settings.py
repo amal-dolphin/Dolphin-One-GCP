@@ -311,3 +311,9 @@ CSRF_TRUSTED_ORIGINS = [
 
 # Base URL for emails and absolute links
 SITE_DOMAIN = "https://placidacademy.com"
+
+# -----------------------------------
+# Large video upload support
+# -----------------------------------
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024 * 1024  # 5 GB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024 * 1024  # 5 GB
