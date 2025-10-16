@@ -34,7 +34,7 @@
                 {% trans 'Upload new video' %}
             </a>
             {% endif %}
-            {% if request.user.is_lecturer %}
+            {% if request.user.is_lecturer or request.user.is_superuser or request.user.is_admin %}
             <a class="btn btn-sm btn-success" href="{% url 'add_student_to_course' course.slug %}">
                 <i class="fas fa-user-plus"></i> {% trans 'Add Student' %}
             </a>

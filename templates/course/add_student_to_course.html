@@ -21,8 +21,15 @@
       <label for="id_email" class="form-label">Student Email</label>
       {{ form.email }}
     </div>
-    <button type="submit" class="btn btn-primary">Add Student</button>
+    <button type="submit" class="btn btn-primary" name="single_add">Add Student</button>
     <a href="{% url 'course_detail' slug=course.slug %}" class="btn btn-secondary">Cancel</a>
+    <hr class="my-4">
+    <h4>Add Multiple Students</h4>
+    <div class="mb-3">
+      <textarea name="emails" rows="5" class="form-control"
+        placeholder="Paste up to 50 emails separated by commas or new lines"></textarea>
+    </div>
+    <button type="submit" name="bulk_add" value="1" class="btn btn-success">Add Students</button>
   </form>
 </div>
 {% endblock %}

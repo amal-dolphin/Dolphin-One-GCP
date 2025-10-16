@@ -326,7 +326,6 @@ def handle_file_delete(request, slug, file_id):
 # Video Upload Views
 # ########################################################
 
-
 @login_required
 @lecturer_required
 def handle_video_upload(request, slug):
@@ -391,26 +390,76 @@ def handle_video_delete(request, slug, video_slug):
     return redirect("course_detail", slug=slug)
 
 # ########################################################
-# Add Student to Course (Lecturer)
+# Add Student to Course (Admin and lecturer)
 # ########################################################
 
 @login_required
-@lecturer_required
+@admin_or_lecturer_required
 def add_student_to_course(request, slug):
     course = get_object_or_404(Course, slug=slug)
+    from accounts.models import User, Student
+    from django.utils.crypto import get_random_string
+    from result.models import TakenCourse
+    from accounts.utils import send_new_account_email
+    import re
 
-    if request.method == "POST":
+    # Bulk Add Students
+    if request.method == "POST" and "bulk_add" in request.POST:
+        emails_input = request.POST.get("emails", "")
+        emails = [e.strip() for e in re.split('[,\n\r ]+', emails_input) if e.strip()]
+        if len(emails) > 50:
+            messages.error(request, "You can only add up to 50 students at a time.")
+            return redirect("add_student_to_course", slug=course.slug)
+
+        added, already, created = [], [], []
+
+        for email in emails:
+            # Create or get user
+            user, user_created = User.objects.get_or_create(
+                email=email,
+                defaults={
+                    "username": email.split("@")[0],
+                    "is_student": True,
+                    "is_active": True,
+                },
+            )
+
+            # If new user → set password + send email
+            if user_created:
+                password = get_random_string(10)
+                user.set_password(password)
+                user.save()
+                send_new_account_email(user, password)
+                created.append(email)
+
+            # Ensure student profile exists
+            student_profile, _ = Student.objects.get_or_create(student=user)
+
+            # Enroll student in course if not already
+            if not TakenCourse.objects.filter(student=student_profile, course=course).exists():
+                TakenCourse.objects.create(student=student_profile, course=course)
+                added.append(email)
+            else:
+                already.append(email)
+
+        # Feedback messages
+        if added:
+            messages.success(request, f"Added to course: {', '.join(added)}")
+        if created:
+            messages.info(request, f"Accounts created & emailed: {', '.join(created)}")
+        if already:
+            messages.warning(request, f"Already enrolled: {', '.join(already)}")
+
+        return redirect("add_student_to_course", slug=course.slug)
+
+    # Single Add 
+    if request.method == "POST" and "single_add" in request.POST:
         form = AddStudentToCourseForm(request.POST)
-
         if form.is_valid():
             email = form.cleaned_data["email"]
             first_name = form.cleaned_data.get("first_name", "")
             last_name = form.cleaned_data.get("last_name", "")
 
-            from accounts.models import User, Student
-            from django.utils.crypto import get_random_string
-
-            # find or create the user
             user, created = User.objects.get_or_create(
                 email=email,
                 defaults={
@@ -418,33 +467,23 @@ def add_student_to_course(request, slug):
                     "first_name": first_name,
                     "last_name": last_name,
                     "is_student": True,
+                    "is_active": True,
                 },
             )
 
-            # if new, set password + send email
             if created:
                 password = get_random_string(10)
                 user.set_password(password)
-                user.is_active = True  # keep them active so they can log in immediately
                 user.save()
-
-                from accounts.utils import send_new_account_email
                 send_new_account_email(user, password)
 
-
-            # always ensure Student record exists
             student_profile, _ = Student.objects.get_or_create(student=user)
 
-            # link student to the course
-            from result.models import TakenCourse
             if not TakenCourse.objects.filter(student=student_profile, course=course).exists():
                 TakenCourse.objects.create(student=student_profile, course=course)
-                full_name = user.get_full_name() if callable(user.get_full_name) else user.get_full_name
-                messages.success(request, f"{full_name} has been added to {course.title}.")
-
+                messages.success(request, f"{email} has been added to {course.title}.")
             else:
-                full_name = user.get_full_name() if callable(user.get_full_name) else user.get_full_name
-                messages.info(request, f"{full_name} is already enrolled in {course.title}.")
+                messages.info(request, f"{email} is already enrolled in {course.title}.")
 
             return redirect("course_detail", slug=slug)
     else:
@@ -455,11 +494,6 @@ def add_student_to_course(request, slug):
         "course/add_student_to_course.html",
         {"title": f"Add Student to {course.title}", "form": form, "course": course},
     )
-
-# ########################################################
-# Course Registration Views
-# ########################################################
-
 
 @login_required
 @student_required

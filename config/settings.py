@@ -140,7 +140,8 @@ DATABASES = {
     }
 }
 
-DATABASES['default']['ATOMIC_REQUESTS'] = True
+DATABASES['default']['ATOMIC_REQUESTS'] = False
+DATABASES['default']['CONN_MAX_AGE'] = 60  
 
 
 # https://docs.djangoproject.com/en/stable/ref/settings/#std:setting-DEFAULT_AUTO_FIELD
