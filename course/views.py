@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Sum
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.decorators import method_decorator
 from django.views.generic import CreateView
@@ -14,6 +15,7 @@ from accounts.decorators import lecturer_required, student_required
 from accounts.views import admin_or_lecturer_required
 from accounts.models import Student
 from core.models import Semester
+from quiz.models import Quiz, Question
 import course
 from course.filters import CourseAllocationFilter, ProgramFilter
 from course.forms import (
@@ -121,6 +123,21 @@ def program_delete(request, pk):
 
 
 @login_required
+def course_list_view(request):
+    courses = Course.objects.order_by("-year")
+    paginator = Paginator(courses, 10)
+    page = request.GET.get("page")
+    courses = paginator.get_page(page)
+    return render(
+        request,
+        "course/course_list_view.html",
+        {
+            "courses": courses,
+        },
+    )
+
+
+@login_required
 def course_single(request, slug):
     course = get_object_or_404(Course, slug=slug)
     files = Upload.objects.filter(course__slug=slug)
@@ -186,6 +203,79 @@ def course_edit(request, slug):
         request, "course/course_add.html", {"title": "Edit Course", "form": form}
     )
 
+@login_required
+@admin_or_lecturer_required
+@transaction.atomic
+def course_duplicate(request, pk):
+    original_course = get_object_or_404(Course, pk=pk)
+    if request.method == "POST":
+        form = CourseAddForm(request.POST)
+        if form.is_valid():
+            new_course = form.save(commit=False)
+            new_course.id = None
+            new_course.save()
+
+            # Count original files
+            upload_count = Upload.objects.filter(course_id=pk).count()
+            video_count = UploadVideo.objects.filter(course_id=pk).count()
+
+            # Duplicate uploads
+            for upload in Upload.objects.filter(course_id=pk):
+                Upload.objects.create(
+                    title=upload.title,
+                    file=upload.file,  # Same S3 file reference
+                    course_id=new_course.id,  # New course foreign key
+                )
+
+            # Duplicate video uploads
+            for video in UploadVideo.objects.filter(course_id=pk):
+                UploadVideo.objects.create(
+                    title=video.title,
+                    video=video.video,  # Same S3 video reference
+                    course_id=new_course.id,  # New course foreign key
+                )
+
+            # Duplicate quizzes and their questions
+            total_questions = 0
+            quiz_count = Quiz.objects.filter(course_id=pk).count()
+
+            for original_quiz in Quiz.objects.filter(course_id=pk):
+                # Create new quiz
+                new_quiz = Quiz.objects.create(
+                    title=original_quiz.title,
+                    description=original_quiz.description,
+                    course_id=new_course.id,
+                    pass_mark=getattr(original_quiz, 'pass_mark', None),
+                    single_attempt=getattr(original_quiz, 'single_attempt', False),
+                    random_order=getattr(original_quiz, 'random_order', False),
+                    answers_at_end=getattr(original_quiz, 'answers_at_end', False),
+                    exam_paper=getattr(original_quiz, 'exam_paper', False),
+                    draft=getattr(original_quiz, 'draft', False),
+                )
+
+                # Copy the question relationships
+                original_questions = original_quiz.question_set.all()
+                new_quiz.question_set.set(original_questions)
+
+                total_questions += original_questions.count()
+
+            # Update your success message
+            messages.success(
+                request,
+                f"Course '{new_course.title}' duplicated with {upload_count} files, "
+                f"{video_count} videos, {quiz_count} quizzes, and {total_questions} questions!"
+            )
+
+
+            return redirect('/programs/course/duplicate/', slug=new_course.slug)
+        messages.error(request, "Correct the error(s) below.")
+    else:
+        original_course.title = 'Copy of ' + original_course.title
+        original_course.code = 'Copy-' + original_course.code
+        form = CourseAddForm(instance=original_course)
+    return render(
+        request, "course/course_duplicate.html", {"title": "Duplicate Course", "form": form}
+    )
 
 @login_required
 @admin_or_lecturer_required

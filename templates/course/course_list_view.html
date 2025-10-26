@@ -8,28 +8,12 @@
 <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
-        {% if request.user.is_student %}
-        <li class="breadcrumb-item"><a href="{% url 'user_course_list' %}">{% trans 'My courses' %}</a></li>
-        {% else %}
-        <li class="breadcrumb-item"><a href="{% url 'programs' %}">{% trans 'Programs' %}</a></li>
-        {% endif %}
-        <li class="breadcrumb-item active" aria-current="page">{{ program.title }}</li>
+
+        <li class="breadcrumb-item"><a href="{% url 'admin_panel' %}">{% trans 'Admin Panel' %}</a></li>
+
+        <li class="breadcrumb-item active" aria-current="page">Courses</li>
     </ol>
 </nav>
-
-{% if request.user.is_superuser or request.user.is_lecturer %}
-<div class="manage-wrap">
-    <a class="btn btn-sm btn-primary" href="{% url 'course_add' pk=program.pk %}"><i class="fas fa-plus"></i>{% trans 'Add Course' %}</a>
-</div>
-{% endif %}
-
-
-{% if program %}
-<div class="title-1">{{ program.title }}</div>
-{% if program.summary %}
-<p>{{ program.summary }}</p>
-{% endif %}
-{% endif %}
 
 {% include 'snippets/messages.html' %}
 {% include 'snippets/filter_form.html' %}
@@ -42,11 +26,6 @@
                     <th>#</th>
                     <th> {% trans 'Course Name' %} </th>
                     <th> {% trans 'Course Code' %} </th>
-                    <th> {% trans 'Cr.Hr' %} </th>
-                    <th> {% trans 'Level' %} </th>
-                    <th> {% trans 'Year' %} </th>
-                    <th> {% trans 'Semester' %} </th>
-                    <th> {% trans 'Current Semester' %} </th>
                     {% if request.user.is_superuser or request.user.is_lecturer %}
                     <th>{% trans 'Action' %}</th>
                     {% endif %}
@@ -59,35 +38,19 @@
                     <td><a href="{{ course.get_absolute_url }}">
                             {{ course.title }}</a></td>
                     <td>{{ course.code }}</td>
-                    <td>{{ course.credit }}</td>
-                    <td>{{ course.level }}</td>
-                    <td>{{ course.year }}</td>
-                    <td>{{ course.semester }}</td>
-                    <th>
-                        {% if course.is_current_semester == False %}
-                        <i class="fas fa-times-circle fa-1-5x danger"></i>
-                        {% elif course.is_current_semester == True %}
-                        <i class="fas fa-check-circle fa-1-5x"></i>
-                        {% endif %}
-                    </th>
+
                     {% if request.user.is_superuser or request.user.is_lecturer %}
                     <td>
-                        <div class="dropstart">
-                            <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" 
-                            data-bs-boundary="window" aria-haspopup="true" aria-expanded="false">
-                                <i class="fas fa-ellipsis-v m-0"></i>
-                            </button>
-                            <div class="dropdown-menu">
-                                <a class="dropdown-item" href="{% url 'edit_course' slug=course.slug %}">
-                                    <i class="unstyled me-2 fas fa-pencil-alt"></i> {% trans 'Edit' %}
+                        <div >
+                                <a href="{% url 'edit_course' slug=course.slug %}" title="Edit">
+                                    <i class="unstyled me-2 fas fa-pencil-alt"></i>
                                 </a>
-                                <a class="dropdown-item" href="{% url 'duplicate_course' pk=course.id %}">
-                                    <i class="unstyled me-2 fas fa-clone"></i> {% trans 'Duplicate' %}
+                                <a href="{% url 'duplicate_course' pk=course.id %}" title="Duplicate">
+                                    <i class="unstyled me-2 fas fa-clone"></i>
                                 </a>
-                                <a class="dropdown-item" href="{% url 'delete_course' slug=course.slug %}">
-                                    <i class="unstyled me-2 fas fa-trash-alt"></i> {% trans 'Delete' %}
+                                <a class="text-danger" href="{% url 'delete_course' slug=course.slug %}" title="Delete">
+                                    <i class="unstyled me-2 fas fa-trash-alt "></i>
                                 </a>
-                            </div>
                         </div>
                     </td>
                     {% endif %}
