@@ -13,6 +13,7 @@ urlpatterns = [
     path("course/<slug>/detail/", views.course_single, name="course_detail"),
     path("<int:pk>/course/add/", views.course_add, name="course_add"),
     path("course/<slug>/edit/", views.course_edit, name="edit_course"),
+    path("course/<int:pk>/duplicate/", views.course_duplicate, name="duplicate_course"),
     path("course/delete/<slug>/", views.course_delete, name="delete_course"),
     path("courses/<slug:slug>/add-student/", views.add_student_to_course, name="add_student_to_course"),
     # CourseAllocation urls
@@ -75,4 +76,5 @@ urlpatterns = [
     path("course/registration/", views.course_registration, name="course_registration"),
     path("course/drop/", views.course_drop, name="course_drop"),
     path("my_courses/", views.user_course_list, name="user_course_list"),
+    path('courses/', views.course_list_view, name='course_list_view'),
 ]
