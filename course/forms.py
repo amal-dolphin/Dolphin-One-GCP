@@ -83,13 +83,21 @@ class UploadFormFile(forms.ModelForm):
         model = Upload
         fields = (
             "title",
+            "module_number",
             "file",
+            "is_available",
         )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["title"].widget.attrs.update({"class": "form-control"})
         self.fields["file"].widget.attrs.update({"class": "form-control"})
+        self.fields["is_available"].widget.attrs.update({"class": "form-check-input"})
+        self.fields["module_number"].widget.attrs.update({"class": "form-control"})
+        self.fields["is_available"].label = "Make file available to students"
+        self.fields["is_available"].help_text = "Uncheck to hide this file from students"
+        self.fields["module_number"].label = "Module Number"
+        self.fields["module_number"].help_text = "Enter the module number (0 for general files)"
 
 
 # Upload video to specific course
@@ -98,13 +106,21 @@ class UploadFormVideo(forms.ModelForm):
         model = UploadVideo
         fields = (
             "title",
+            "module_number",
             "video",
+            "is_available",
         )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["title"].widget.attrs.update({"class": "form-control"})
         self.fields["video"].widget.attrs.update({"class": "form-control"})
+        self.fields["is_available"].widget.attrs.update({"class": "form-check-input"})
+        self.fields["module_number"].widget.attrs.update({"class": "form-control"})
+        self.fields["is_available"].label = "Make file available to students"
+        self.fields["is_available"].help_text = "Uncheck to hide this file from students"
+        self.fields["module_number"].label = "Module Number"
+        self.fields["module_number"].help_text = "Enter the module number (0 for general files)"
 
 # Lecturer adds student by email
 from accounts.models import Student

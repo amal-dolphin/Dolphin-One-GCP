@@ -55,158 +55,190 @@
 
 <div class="container">
 
-    <div class="row mb-5">
-        <div class="col-md-12 p-0">
-            <p class="form-title m-0">{% trans 'Video Tutorials' %}</p>
-            <div class="table-responsive">
-                <table class="table table-shadow table-light table-striped m-0">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>{% trans 'Video Title' %}</th>
-                            <th>{% trans 'Uploaded Date' %}</th>
-                            <th>{% trans 'Get Started' %}</th>
-                            {% if request.user.is_superuser or request.user.is_lecturer %}
-                            <th>{% trans 'Actions' %}</th>
-                            {% endif %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for video in videos %}
-                        <tr>
-                            <td>{{ forloop.counter }}</td>
-                            <td>
-                                <a href="{{ video.get_absolute_url }}" title="{{ video }}" class="d-flex align-items-center">
-                                    <i class="fas fa-video me-1"></i> {{ video.title|title }}
-                                </a>
-                            </td>
-                            <td>{{ video.timestamp|date }}</td>
-                            <th>
-                                <div>
-                                    <a class="download-btn" href="{{ video.get_absolute_url }}"
-                                        title="Download to your device">
-                                        <i class="fas fa-play me-1"></i>{% trans 'Play now' %}</a>
-                                </div>
-                            </th>
 
-                            {% if request.user.is_superuser or request.user.is_lecturer %}
-                            <td>
-                                <div class="update-delete">
-                                    <a href="{% url 'upload_video_edit' slug=course.slug video_slug=video.slug %}"
-                                        class="update" title="{% trans 'Edit' %}">
-                                        <i class="fas fa-pencil-alt"></i>
+    {% for module_number, materials in materials_by_module.items %}
+        <div class="row mb-5">
+            <div class="col-md-12 p-0">
+                <p class="form-title m-0">{% trans 'Module '  %} {{ module_number }} </p>
+                <div class="table-responsive">
+                    <table class="table table-shadow table-light table-striped m-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>{% trans 'Title' %}</th>
+                                <th>{% trans 'Uploaded Date' %}</th>
+                                <th>{% trans 'Learn' %}</th>
+                                {% if request.user.is_superuser or request.user.is_lecturer %}
+                                    <th>{% trans 'Available' %}</th>
+                                {% endif %}
+                                {% if request.user.is_superuser or request.user.is_lecturer %}
+                                    <th>{% trans 'Actions' %}</th>
+                                {% endif %}
+                                {% if request.user.is_student %}
+                                    <th>{% trans 'Status' %}</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for material in materials %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>
+                                    {% if material.content_type == 'file' %}
+                                        <a href="{{ material.file.url }}" title="{{ material }}" class="d-flex align-items-center">
+                                            <i class="fas fa-file-{{ material.get_extension_short }} me-1"></i>
+                                            {{ material.title|title }}
+                                        </a>
+                                    {% elif material.content_type == 'video' %}
+                                        <a href="{{ material.get_absolute_url }}" title="{{ material }}" class="d-flex align-items-center">
+                                        <i class="fas fa-video me-1"></i> {{ material.title|title }}
                                     </a>
-                                    <a href="{% url 'upload_video_delete' slug=course.slug video_slug=video.slug %}"
-                                        class="delete" title="{% trans 'Delete' %}">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </a>
-                                </div>
-                            </td>
-                            {% endif %}
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td></td>
-                            <td></td>
-                            <td>
-                                <span class="text-danger">
-                                    {% trans 'No video Uploaded.' %}
-                                    {% if request.user.is_superuser or request.user.is_lecturer %}
-                                    <a href="{% url 'upload_video' course.slug %}" class="text-primary">
-                                        <i class="primary" style="font-size: 22px;">
-                                            {% trans 'Upload now.' %}
-                                        </i>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if material.content_type == 'file' %}
+                                        {{ material.upload_time|date }}
+                                    {% elif material.content_type == 'video' %}
+                                        {{ material.timestamp|date }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if material.content_type == 'file' %}
+                                        <div>
+                                            <a class="download-btn" href="{{ material.file.url }}" title="Download to your device">
+                                                <i class="fas fa-download me-1"></i>{% trans 'Download' %}</a>
+                                        </div>
+                                    {% elif material.content_type == 'video' %}
+                                        <div>
+                                            <a class="download-btn" href="{{ material.get_absolute_url }}"
+                                                title="Download to your device">
+                                                <i class="fas fa-play me-1"></i>{% trans 'Play now' %}</a>
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                {% if request.user.is_superuser or request.user.is_lecturer %}
+                                    <td>
+                                        {% if material.content_type == 'file' %}
+                                            <div class="availability-toggle" style="margin-bottom: 10px;">
+                                                <span class="availability-icon"
+                                                      data-upload-id="{{ material.id }}"
+                                                      data-available="{{ material.is_available|yesno:'true,false' }}"
+                                                      title="{% trans 'Availability' %}"
+                                                      style="cursor: pointer; font-size: 18px; margin-right: 5px;">
+                                                    {% if material.is_available %}
+                                                        <i class="fas fa-check-circle" style="color: #28a745;"></i>
+                                                    {% else %}
+                                                        <i class="fas fa-times-circle" style="color: #dc3545;"></i>
+                                                    {% endif %}
+                                                </span>
+                                                <small style="color: #666;">
+                                                    {% if material.is_available %}
+                                                        {% trans 'Available' %}
+                                                    {% else %}
+                                                        {% trans 'Unavailable' %}
+                                                    {% endif %}
+                                                </small>
+                                            </div>
+                                        {% elif material.content_type == 'video' %}
+                                           <div class="availability-toggle" style="margin-bottom: 10px;">
+                                            <span class="availability-icon"
+                                                  data-upload-id="{{ material.id }}"
+                                                  data-available="{{ material.is_available|yesno:'true,false' }}"
+                                                  title="{% trans 'Click to toggle availability' %}"
+                                                  style="cursor: pointer; font-size: 18px; margin-right: 5px;">
+                                                {% if material.is_available %}
+                                                    <i class="fas fa-check-circle" style="color: #28a745;"></i>
+                                                {% else %}
+                                                    <i class="fas fa-times-circle" style="color: #dc3545;"></i>
+                                                {% endif %}
+                                            </span>
+                                            <small style="color: #666;">
+                                                {% if material.is_available %}
+                                                    {% trans 'Available' %}
+                                                {% else %}
+                                                    {% trans 'Unavailable' %}
+                                                {% endif %}
+                                            </small>
+                                        </div>
                                         {% endif %}
-                                    </a>
-                                </span>
-                            </td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                                    </td>
+                                {% endif %}
+
+                                {% if request.user.is_superuser or request.user.is_lecturer %}
+                                    <td>
+                                        {% if material.content_type == 'file' %}
+                                            <div class="update-delete">
+                                                <a href="{% url 'upload_file_edit' slug=course.slug file_id=material.pk %}"
+                                                    class="update" title="{% trans 'Edit' %}">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                </a>
+                                                <a href="{% url 'upload_file_delete' slug=course.slug file_id=material.pk %}"
+                                                    class="delete" title="{% trans 'Delete' %}">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </a>
+                                            </div>
+                                        {% elif material.content_type == 'video' %}
+                                            <div class="update-delete">
+                                                <a href="{% url 'upload_video_edit' slug=course.slug video_slug=material.slug %}"
+                                                    class="update" title="{% trans 'Edit' %}">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                </a>
+                                                <a href="{% url 'upload_video_delete' slug=course.slug video_slug=material.slug %}"
+                                                    class="delete" title="{% trans 'Delete' %}">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </a>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
+
+                                {% if request.user.is_student %}
+                                    <td>
+                                        {% if request.user.is_student %}
+                                                <label class="btn btn-outline-secondary material-toggle">
+                                                    <input type="checkbox"
+                                                           class="material-checkbox"
+                                                           data-material-id="{{ material.id }}"
+                                                           data-material-type="{{ material.content_type }}"
+                                                           data-taken-course-id="{{ current_taken_course_id }}"
+                                                           {% if material.is_completed %}checked{% endif %}
+                                                           autocomplete="off">
+                                                </label>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
+
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>
+                                    <span class="text-danger">
+                                        {% trans 'No video Uploaded.' %}
+                                        {% if request.user.is_superuser or request.user.is_lecturer %}
+                                        <a href="{% url 'upload_video' course.slug %}" class="text-primary">
+                                            <i class="primary" style="font-size: 22px;">
+                                                {% trans 'Upload now.' %}
+                                            </i>
+                                            {% endif %}
+                                        </a>
+                                    </span>
+                                </td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-    </div>
+    {% endfor %}
 
-    <div class="row">
-        <div class="col-md-12 p-0">
-            <p class="form-title m-0">{% trans 'Documentations' %}</p>
-            <div class="table-responsive">
-                <table class="table table-shadow table-light table-striped m-0">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>{% trans 'File name' %}</th>
-                            <th>{% trans 'Uploaded Date' %}</th>
-                            <th>{% trans 'Updated Date' %}</th>
-                            <th>{% trans 'Downloads' %}</th>
-                            {% if request.user.is_superuser or request.user.is_lecturer %}
-                            <th>{% trans 'Actions' %}</th>
-                            {% endif %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for file in files %}
-                        <tr>
-                            <td>{{ forloop.counter }}</td>
-                            <td><a href="{{ file.file.url }}" title="{{ file }}" class="d-flex align-items-center">
-                                    <i class="fas fa-file-{{ file.get_extension_short }} me-1"></i>
-                                    {{ file.title|title }}
-                                </a>
-                            </td>
-                            <td>{{ file.upload_time|date }}</td>
-                            <td>{{ file.updated_date|date }}</td>
-                            <th>
-                                <div>
-                                    <a class="download-btn" href="{{ file.file.url }}" title="Download to your device">
-                                        <i class="fas fa-download me-1"></i>{% trans 'Download' %}</a>
-                                </div>
-                            </th>
 
-                            {% if request.user.is_superuser or request.user.is_lecturer %}
-                            <td>
-                                <div class="update-delete">
-                                    <a href="{% url 'upload_file_edit' slug=course.slug file_id=file.pk %}"
-                                        class="update" title="{% trans 'Edit' %}">
-                                        <i class="fas fa-pencil-alt"></i>
-                                    </a>
-                                    <a href="{% url 'upload_file_delete' slug=course.slug file_id=file.pk %}"
-                                        class="delete" title="{% trans 'Delete' %}">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </a>
-                                </div>
-                            </td>
-                            {% endif %}
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td></td>
-                            <td></td>
-                            <td>
-                                <span class="text-danger">
-                                    {% trans 'No File Uploaded.' %}
-                                    {% if request.user.is_superuser or request.user.is_lecturer %}
-                                    <a href="{% url 'upload_file_view' course.slug %}" class="text-primary">
-                                        <i class="primary" style="font-size: 22px;">
-                                            {% trans 'Upload now.' %}
-                                        </i>
-                                        {% endif %}
-                                    </a>
-                                </span>
-                            </td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+
 
 </div>
 
@@ -245,4 +277,110 @@
     </div>
 </div>
 
+<style>
+/* Hide the actual checkbox */
+.material-toggle input[type="checkbox"] {
+    display: none;
+}
+
+/* Set consistent size for all toggle buttons */
+.material-toggle {
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+/* Hide the check icon by default */
+.material-toggle .check-icon {
+    display: none;
+    color: #0056b3; /* Darker blue color */
+    font-size: 16px;
+}
+
+/* Show darker blue check when checkbox is checked */
+.material-toggle input[type="checkbox"]:checked + .check-icon {
+    display: inline-block;
+}
+
+/* Change button style when checked */
+.material-toggle:has(input[type="checkbox"]:checked) {
+    background-color: #b3d7ff; /* Darker light blue background */
+    border-color: #0056b3; /* Darker blue border */
+    color: #0056b3; /* Darker blue color */
+}
+
+/* Fallback for browsers that don't support :has() */
+.material-toggle.checked {
+    background-color: #b3d7ff; /* Darker light blue background */
+    border-color: #0056b3; /* Darker blue border */
+    color: #0056b3; /* Darker blue color */
+}
+
+/* Hover effect */
+.material-toggle:hover {
+    background-color: #f8f9fa;
+    border-color: #6c757d;
+}
+
+.material-toggle.checked:hover {
+    background-color: #99ccff; /* Even darker light blue on hover */
+    border-color: #003d82; /* Even darker blue border on hover */
+}
+</style>
+
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.material-checkbox');
+
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const materialId = this.dataset.materialId;
+            const materialType = this.dataset.materialType;
+            const takenCourseId = this.dataset.takenCourseId;
+            const isChecked = this.checked;
+
+            // Show loading state
+            this.disabled = true;
+
+            fetch('{% url "toggle_progress" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    material_id: materialId,
+                    material_type: materialType,
+                    taken_course_id: takenCourseId,
+                    is_checked: isChecked
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log(data.message);
+                } else {
+                    console.error('Error:', data.message);
+                    this.checked = !isChecked;
+                }
+            })
+            .catch(error => {
+                console.error('Network error:', error);
+                this.checked = !isChecked;
+            })
+            .finally(() => {
+                this.disabled = false;
+            });
+        });
+    });
+});
+</script>
+
 {% endblock content %}
+
+

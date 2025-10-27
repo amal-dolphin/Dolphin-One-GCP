@@ -1,5 +1,9 @@
 from django.conf import settings
 from django.contrib import messages
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+import json
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Sum
@@ -10,13 +14,10 @@ from django.views.generic import CreateView
 from django_filters.views import FilterView
 from requests import request
 from course.forms import AddStudentToCourseForm
-
 from accounts.decorators import lecturer_required, student_required
 from accounts.views import admin_or_lecturer_required
-from accounts.models import Student
 from core.models import Semester
-from quiz.models import Quiz, Question
-import course
+from quiz.models import Quiz
 from course.filters import CourseAllocationFilter, ProgramFilter
 from course.forms import (
     CourseAddForm,
@@ -30,10 +31,16 @@ from course.models import (
     Course,
     CourseAllocation,
     Program,
+    StudentMaterialProgress,
     Upload,
-    UploadVideo,
+    UploadVideo
 )
+from collections import defaultdict
+from accounts.models import User, Student
+from django.utils.crypto import get_random_string
 from result.models import TakenCourse
+from accounts.utils import send_new_account_email
+import re
 
 
 # ########################################################
@@ -121,7 +128,6 @@ def program_delete(request, pk):
 # Course Views
 # ########################################################
 
-
 @login_required
 def course_list_view(request):
     courses = Course.objects.order_by("-year")
@@ -138,7 +144,7 @@ def course_list_view(request):
 
 
 @login_required
-def course_single(request, slug):
+def course_single_old(request, slug):
     course = get_object_or_404(Course, slug=slug)
     files = Upload.objects.filter(course__slug=slug)
     videos = UploadVideo.objects.filter(course__slug=slug)
@@ -156,6 +162,181 @@ def course_single(request, slug):
         },
     )
 
+# @login_required
+# def course_single(request, slug):
+#     course = get_object_or_404(Course, slug=slug)
+#     print('inside course_single')
+#     print()
+#     if request.user.is_student:
+#         # For students: show only available content, ordered by module and title
+#         files = Upload.objects.filter(
+#             course__slug=slug,
+#             is_available=True
+#         ).order_by('module_number', 'title')
+#
+#         videos = UploadVideo.objects.filter(
+#             course__slug=slug,
+#             is_available=True
+#         ).order_by('module_number', 'title')
+#     else:
+#         # For non-students (lecturers, admins): show all content as before
+#         files = Upload.objects.filter(course__slug=slug)
+#         videos = UploadVideo.objects.filter(course__slug=slug)
+#
+#     # Get student progress if user is a student
+#     completed_materials = set()
+#     current_taken_course = None
+#     if request.user.is_student:
+#         try:
+#             print('inside if block')
+#
+#             current_taken_course = TakenCourse.objects.get(
+#                 student__pk=request.user.id,
+#                 course=course
+#             )
+#
+#             print(current_taken_course)
+#
+#             progress_records = StudentMaterialProgress.objects.filter(
+#                 taken_course=current_taken_course
+#             ).values_list('material_id', 'material_type')
+#
+#             completed_materials = {(material_id, material_type) for material_id, material_type in progress_records}
+#         except TakenCourse.DoesNotExist:
+#             completed_materials = set()
+#
+#     # Group materials by module number
+#     materials_by_module = defaultdict(list)
+#
+#     # Add files with content_type indicator
+#     for file in files:
+#         file.content_type = 'file'
+#         file.is_completed = (file.id, 'file') in completed_materials
+#         module_key = file.module_number or 0  # Use 0 for None values
+#         materials_by_module[module_key].append(file)
+#
+#     # Add videos with content_type indicator
+#     for video in videos:
+#         video.content_type = 'video'
+#         video.is_completed = (video.id, 'video') in completed_materials
+#         module_key = video.module_number or 0  # Use 0 for None values
+#         materials_by_module[module_key].append(video)
+#
+#     # Sort materials within each module by title
+#     for module_materials in materials_by_module.values():
+#         module_materials.sort(key=lambda x: x.title or '')
+#
+#     # Convert to regular dict and sort by module number
+#     materials_by_module = dict(sorted(materials_by_module.items()))
+#
+#     lecturers = CourseAllocation.objects.filter(courses__pk=course.id)
+#
+#     return render(
+#         request,
+#         "course/course_single.html",
+#         {
+#             "title": course.title,
+#             "course": course,
+#             "materials_by_module": materials_by_module,
+#             "lecturers": lecturers,
+#             "media_url": settings.MEDIA_URL,
+#             "current_taken_course_id": current_taken_course.id if current_taken_course else None,
+#         },
+#     )
+
+@login_required
+def course_single(request, slug):
+    course = get_object_or_404(Course, slug=slug)
+
+    print(f"User: {request.user}")
+    print(f"User ID: {request.user.id}")
+    print(f"Is student: {request.user.is_student}")
+    print(f"Course: {course}")
+
+    if request.user.is_student:
+        files = Upload.objects.filter(
+            course__slug=slug,
+            is_available=True
+        ).order_by('module_number', 'title')
+
+        videos = UploadVideo.objects.filter(
+            course__slug=slug,
+            is_available=True
+        ).order_by('module_number', 'title')
+    else:
+        files = Upload.objects.filter(course__slug=slug)
+        videos = UploadVideo.objects.filter(course__slug=slug)
+
+    # Get student progress if user is a student
+    completed_materials = set()
+    current_taken_course = None
+    if request.user.is_student:
+        try:
+            # First, get the Student record using the user_id
+
+            student = Student.objects.get(student_id=request.user.id)
+            print(f"Found student record: {student} (ID: {student.id})")
+
+            # Now use the student.id (not user.id) for TakenCourse lookup
+            current_taken_course = TakenCourse.objects.filter(
+                student_id=student.id,  # Use student.id, not request.user.id
+                course_id=course.id
+            ).first()
+
+            print(f"Current taken course: {current_taken_course}")
+
+            if current_taken_course:
+                progress_records = StudentMaterialProgress.objects.filter(
+                    taken_course=current_taken_course
+                ).values_list('material_id', 'material_type')
+
+                completed_materials = {(material_id, material_type) for material_id, material_type in progress_records}
+            else:
+                print("No TakenCourse found for this student and course")
+
+        except Student.DoesNotExist:
+            print("Student record not found for this user")
+            completed_materials = set()
+        except Exception as e:
+            print(f"Error getting taken course: {e}")
+            completed_materials = set()
+
+    # Rest of your existing code...
+    materials_by_module = defaultdict(list)
+
+    for file in files:
+        file.content_type = 'file'
+        file.is_completed = (file.id, 'file') in completed_materials
+        module_key = file.module_number or 0
+        materials_by_module[module_key].append(file)
+
+    for video in videos:
+        video.content_type = 'video'
+        video.is_completed = (video.id, 'video') in completed_materials
+        module_key = video.module_number or 0
+        materials_by_module[module_key].append(video)
+
+    for module_materials in materials_by_module.values():
+        module_materials.sort(key=lambda x: x.title or '')
+
+    materials_by_module = dict(sorted(materials_by_module.items()))
+
+    lecturers = CourseAllocation.objects.filter(courses__pk=course.id)
+
+    print(f"Final current_taken_course_id: {current_taken_course.id if current_taken_course else None}")
+
+    return render(
+        request,
+        "course/course_single.html",
+        {
+            "title": course.title,
+            "course": course,
+            "materials_by_module": materials_by_module,
+            "lecturers": lecturers,
+            "media_url": settings.MEDIA_URL,
+            "current_taken_course_id": current_taken_course.id if current_taken_course else None,
+        },
+    )
 
 @login_required
 @admin_or_lecturer_required
@@ -182,7 +363,6 @@ def course_add(request, pk):
         "course/course_add.html",
         {"title": "Add Course", "form": form, "program": program},
     )
-
 
 @login_required
 @admin_or_lecturer_required
@@ -412,9 +592,167 @@ def handle_file_delete(request, slug, file_id):
     return redirect("course_detail", slug=slug)
 
 
+# @login_required
+# @csrf_exempt
+# def toggle_material_progress(request):
+#     if request.method == 'POST':
+#         try:
+#             data = json.loads(request.body)
+#             print(f"Parsed data: {data}")
+#
+#             material_id = data.get('material_id')
+#             material_type = data.get('material_type')
+#             is_checked = data.get('is_checked')
+#             taken_course_id = data.get('taken_course_id')
+#
+#             if not taken_course_id:
+#                 return JsonResponse({
+#                     'status': 'error',
+#                     'message': 'Missing taken_course_id'
+#                 }, status=400)
+#
+#             taken_course = get_object_or_404(TakenCourse, id=taken_course_id)
+#
+#             # Verify the taken_course belongs to the current user
+#             if taken_course.student.pk != request.user.id:
+#                 return JsonResponse({
+#                     'status': 'error',
+#                     'message': 'Unauthorized'
+#                 }, status=403)
+#
+#             if is_checked:
+#                 progress, created = StudentMaterialProgress.objects.get_or_create(
+#                     taken_course=taken_course,
+#                     material_id=material_id,
+#                     material_type=material_type
+#                 )
+#                 print(f"Progress created: {created}")
+#                 return JsonResponse({
+#                     'status': 'success',
+#                     'action': 'created',
+#                     'message': 'Material marked as completed!'
+#                 })
+#             else:
+#                 deleted_count, _ = StudentMaterialProgress.objects.filter(
+#                     taken_course=taken_course,
+#                     material_id=material_id,
+#                     material_type=material_type
+#                 ).delete()
+#                 print(f"Deleted count: {deleted_count}")
+#                 return JsonResponse({
+#                     'status': 'success',
+#                     'action': 'deleted',
+#                     'message': 'Material marked as incomplete!'
+#                 })
+#
+#         except json.JSONDecodeError as e:
+#             print(f"JSON decode error: {e}")
+#             return JsonResponse({
+#                 'status': 'error',
+#                 'message': f'Invalid JSON: {str(e)}'
+#             }, status=400)
+#         except Exception as e:
+#             print(f"General error: {e}")
+#             return JsonResponse({
+#                 'status': 'error',
+#                 'message': str(e)
+#             }, status=400)
+#
+#     return JsonResponse({
+#         'status': 'error',
+#         'message': 'Invalid request method'
+#     }, status=405)
+
 # ########################################################
 # Video Upload Views
 # ########################################################
+
+@login_required
+@csrf_exempt
+def toggle_material_progress(request):
+    print(f"Request method: {request.method}")
+    print(f"Request body: {request.body}")
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            print(f"Parsed data: {data}")
+
+            material_id = data.get('material_id')
+            material_type = data.get('material_type')
+            is_checked = data.get('is_checked')
+            taken_course_id = data.get('taken_course_id')
+
+            print(
+                f"Material ID: {material_id}, Type: {material_type}, Checked: {is_checked}, TakenCourse ID: {taken_course_id}")
+
+            if not taken_course_id or taken_course_id == 'None':
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Missing or invalid taken_course_id'
+                }, status=400)
+
+            taken_course = get_object_or_404(TakenCourse, id=taken_course_id)
+            print(f"Found taken_course: {taken_course}")
+
+            # Get the student record to verify ownership
+            from accounts.models import Student
+            student = Student.objects.get(student_id=request.user.id)
+
+            # Verify the taken_course belongs to the current student
+            if taken_course.student_id != student.id:  # Compare with student.id
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Unauthorized'
+                }, status=403)
+
+            if is_checked:
+                progress, created = StudentMaterialProgress.objects.get_or_create(
+                    taken_course=taken_course,
+                    material_id=material_id,
+                    material_type=material_type
+                )
+                print(f"Progress created: {created}")
+                return JsonResponse({
+                    'status': 'success',
+                    'action': 'created',
+                    'message': 'Material marked as completed!'
+                })
+            else:
+                deleted_count, _ = StudentMaterialProgress.objects.filter(
+                    taken_course=taken_course,
+                    material_id=material_id,
+                    material_type=material_type
+                ).delete()
+                print(f"Deleted count: {deleted_count}")
+                return JsonResponse({
+                    'status': 'success',
+                    'action': 'deleted',
+                    'message': 'Material marked as incomplete!'
+                })
+
+        except Student.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Student record not found'
+            }, status=400)
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error: {e}")
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Invalid JSON: {str(e)}'
+            }, status=400)
+        except Exception as e:
+            print(f"General error: {e}")
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=400)
+
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method'
+    }, status=405)
 
 @login_required
 @lecturer_required
@@ -487,11 +825,6 @@ def handle_video_delete(request, slug, video_slug):
 @admin_or_lecturer_required
 def add_student_to_course(request, slug):
     course = get_object_or_404(Course, slug=slug)
-    from accounts.models import User, Student
-    from django.utils.crypto import get_random_string
-    from result.models import TakenCourse
-    from accounts.utils import send_new_account_email
-    import re
 
     # Bulk Add Students
     if request.method == "POST" and "bulk_add" in request.POST:
@@ -576,6 +909,7 @@ def add_student_to_course(request, slug):
                 messages.info(request, f"{email} is already enrolled in {course.title}.")
 
             return redirect("course_detail", slug=slug)
+
     else:
         form = AddStudentToCourseForm()
 

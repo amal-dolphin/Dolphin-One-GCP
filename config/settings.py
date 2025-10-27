@@ -28,7 +28,9 @@ SECRET_KEY = config(
 DEBUG = config("DEBUG", default=False, cast=bool)
 
 ALLOWED_HOSTS = [
-    "127.0.0.1",                 # local dev
+    'localhost',
+    '127.0.0.1',
+    '0.0.0.0',  # For Docker
     "dolphin-one-134365728731.us-central1.run.app",  # Cloud Run domain
     "www.placidacademy.com",                         # your custom domain
     "placidacademy.com",                         # root domain (without www)
@@ -271,7 +273,8 @@ LOGGING = {
 }
 
 # WhiteNoise configuration
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+#STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 STUDENT_ID_PREFIX = config("STUDENT_ID_PREFIX", "ugr")
 LECTURER_ID_PREFIX = config("LECTURER_ID_PREFIX", "lec")

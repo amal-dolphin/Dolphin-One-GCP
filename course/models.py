@@ -10,6 +10,8 @@ from django.utils.translation import gettext_lazy as _
 from core.models import ActivityLog, Semester
 from core.utils import unique_slug_generator
 
+import os
+import uuid
 
 class ProgramManager(models.Manager):
     def search(self, query=None):
@@ -124,11 +126,19 @@ class CourseAllocation(models.Model):
         return reverse("edit_allocated_course", kwargs={"pk": self.pk})
 
 
+def upload_to_course_files(instance, filename):
+    ext = filename.split('.')[-1].lower()
+    new_filename = f"{uuid.uuid4().hex}.{ext}"
+
+    return f"course_files/{new_filename}"
+
+
 class Upload(models.Model):
     title = models.TextField(blank=True, null=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    module_number = models.IntegerField(default=0)
     file = models.FileField(
-        upload_to="course_files/",
+        upload_to=upload_to_course_files,
         help_text=_(
             "Valid Files: pdf, docx, doc, xls, xlsx, ppt, pptx, zip, rar, 7zip"
         ),
@@ -149,6 +159,7 @@ class Upload(models.Model):
             )
         ],
     )
+    is_available = models.BooleanField(default=True)
     updated_date = models.DateTimeField(auto_now=True)
     upload_time = models.DateTimeField(auto_now_add=True)
 
@@ -170,9 +181,25 @@ class Upload(models.Model):
         return "file"
 
     def delete(self, *args, **kwargs):
-        self.file.delete(save=False)
+        # Store the file path and instance info before deleting
+        file_path = self.file.name if self.file else None
+        upload_id = self.id
+
+        # Delete the database record first
         super().delete(*args, **kwargs)
 
+        # Check if any other Upload instances reference the same file
+        if file_path:
+            other_uploads_with_same_file = Upload.objects.filter(file=file_path).exists()
+
+            # Only delete the physical file if no other instances reference it
+            if not other_uploads_with_same_file:
+                # Delete the file from S3
+                if self.file.storage.exists(file_path):
+                    self.file.storage.delete(file_path)
+                    print(f"File {file_path} deleted from S3")
+            else:
+                print(f"File {file_path} not deleted - still referenced by other uploads")
 
 @receiver(post_save, sender=Upload)
 def log_upload_save(sender, instance, created, **kwargs):
@@ -196,17 +223,25 @@ def log_upload_delete(sender, instance, **kwargs):
     )
 
 
+def upload_to_course_videos(instance, filename):
+    ext = filename.split('.')[-1].lower()
+    new_filename = f"{uuid.uuid4().hex}.{ext}"
+
+    return f"course_videos/{new_filename}"
+
 class UploadVideo(models.Model):
     title = models.TextField(blank=True, null=True)
     slug = models.SlugField(unique=True, blank=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    module_number = models.IntegerField(default=0)
     video = models.FileField(
-        upload_to="course_videos/",
+        upload_to=upload_to_course_videos,
         help_text=_("Valid video formats: mp4, mkv, wmv, 3gp, f4v, avi, mp3"),
         validators=[
             FileExtensionValidator(["mp4", "mkv", "wmv", "3gp", "f4v", "avi", "mp3"])
         ],
     )
+    is_available = models.BooleanField(default=True)
     summary = models.TextField(blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
 
@@ -219,8 +254,24 @@ class UploadVideo(models.Model):
         )
 
     def delete(self, *args, **kwargs):
-        self.video.delete(save=False)
+        # Store the video file path before deleting the instance
+        video_path = self.video.name if self.video else None
+
+        # Delete the database record first
         super().delete(*args, **kwargs)
+
+        # Check if any other UploadVideo instances reference the same video file
+        if video_path:
+            other_videos_with_same_file = UploadVideo.objects.filter(video=video_path).exists()
+
+            # Only delete the physical video file if no other instances reference it
+            if not other_videos_with_same_file:
+                # Delete the video file from S3
+                if self.video.storage.exists(video_path):
+                    self.video.storage.delete(video_path)
+                    print(f"Video {video_path} deleted from S3")
+            else:
+                print(f"Video {video_path} not deleted - still referenced by other videos")
 
 
 @receiver(pre_save, sender=UploadVideo)
@@ -258,3 +309,22 @@ class CourseOffer(models.Model):
 
     def __str__(self):
         return str(self.dep_head)
+
+
+class StudentMaterialProgress(models.Model):
+    MATERIAL_TYPES = [
+        ('file', 'File'),
+        ('video', 'Video'),
+    ]
+
+    taken_course = models.ForeignKey('result.TakenCourse', on_delete=models.CASCADE)
+    material_id = models.PositiveIntegerField()  # ID of the file or video
+    material_type = models.CharField(max_length=10, choices=MATERIAL_TYPES)
+
+    class Meta:
+        unique_together = ['taken_course', 'material_id', 'material_type']
+        verbose_name = "Student Material Progress"
+        verbose_name_plural = "Student Material Progress"
+
+    def __str__(self):
+        return f"{self.taken_course.student} - {self.material_type} {self.material_id} - Completed"

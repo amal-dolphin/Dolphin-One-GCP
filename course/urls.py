@@ -11,6 +11,7 @@ urlpatterns = [
     path("<int:pk>/delete/", views.program_delete, name="program_delete"),
     # Course urls
     path("course/<slug>/detail/", views.course_single, name="course_detail"),
+    #path("course/<slug>/detail/", views.course_single_new, name="course_detail_new"),
     path("<int:pk>/course/add/", views.course_add, name="course_add"),
     path("course/<slug>/edit/", views.course_edit, name="edit_course"),
     path("course/<int:pk>/duplicate/", views.course_duplicate, name="duplicate_course"),
@@ -77,4 +78,5 @@ urlpatterns = [
     path("course/drop/", views.course_drop, name="course_drop"),
     path("my_courses/", views.user_course_list, name="user_course_list"),
     path('courses/', views.course_list_view, name='course_list_view'),
+    path('toggle-progress/', views.toggle_material_progress, name='toggle_progress')
 ]
